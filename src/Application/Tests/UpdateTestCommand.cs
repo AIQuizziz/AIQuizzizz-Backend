@@ -4,6 +4,7 @@ using CleanArchitectureBase.Application.Common.Security;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
 using CleanArchitectureBase.Application.Tests.Service;
 using CleanArchitectureBase.Domain.Constants;
+using CleanArchitectureBase.Application.Questions.Utils;
 using CleanArchitectureBase.Domain.Entities;
 
 namespace CleanArchitectureBase.Application.Tests;
@@ -241,7 +242,7 @@ public class UpdateTestCommandHandler : IRequestHandler<UpdateTestCommand, Guid>
                 Type = Enum.Parse<QuestionType>(questionDto.Type!),
                 ExplainText = questionDto.ExplainText,
                 QuestionText = questionDto.QuestionText,
-                TextFormat = TextFormat.PlainText,
+                TextFormat = TextFormatHelper.Resolve(questionDto.TextFormat, TextFormat.PlainText),
                 Score = questionDto.Score
             };
             question.ApplyMedia(questionDto, mediaMap);

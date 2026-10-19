@@ -2,7 +2,33 @@
 
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/). Nhánh gốc: `master` (`a0a8fe1`).
 
+## [Unreleased] — 2026-10-19
+
+### Added — Thẻ ghi nhớ ngôn ngữ (`LanguageFlashcard`) và API cho extension trình duyệt
+- `QuestionType.LanguageFlashcard` (enum lưu dạng chuỗi nên cột `Type` không cần migration). Mặt trước = `QuestionText`; mặt sau = `DataJson` (`QTypeLanguageFlashcard`, `v`=1: `back.meanings[]` {pos, definition, translation, examples, synonyms}, `phonetic`, `audioUrl`, `lang`, `source` {url, title, context, capturedAt}, `lookup`). Giới hạn: ≤5 nghĩa, ≤3 ví dụ/nghĩa, chuỗi ≤1000 ký tự, `audioUrl`/`source.url` chỉ nhận https; thẻ không có nghĩa nào vẫn hợp lệ (thẻ nháp).
+- Học / luyện tập: `FlashcardQuizBuilder` dựng thẻ thành **trắc nghiệm** (đáp án đúng = bản dịch nếu có, không thì định nghĩa; tối đa 3 đáp án nhiễu từ các thẻ khác trong bộ — ưu tiên cùng từ loại, bỏ nghĩa gần trùng, chọn tất định theo hash nên không cần lưu). Response trả `type = "MultipleChoice"`, `originalType = "LanguageFlashcard"`, kèm `questionData.flashcard`. Xem/sửa bộ giữ `type = "LanguageFlashcard"`. `GET .../Test` nhận thêm `LanguageFlashcard` trong `QuestionTypes`.
+- **Chưa hỗ trợ** trong bài kiểm tra của lớp / test template (validator từ chối).
+- Extension (`/api/Extension`, giới hạn 60 request/phút/người dùng): `GET|PUT Settings`, `GET QuestionSets` (bộ được sửa), `POST Flashcards` (thêm thẻ từ từ được bôi đen), `DELETE Flashcards/{id}` (xoá một thẻ: nút Hoàn tác / Xoá của extension; cần quyền sửa bộ chứa thẻ).
+- Bảng `ExtensionSettings` (migration `AddExtensionSettings`): bộ đích Fixed/Daily/Weekly/Monthly, bật/tắt dịch + cặp ngôn ngữ, lưu ngữ cảnh, múi giờ. Bộ theo kỳ tự tạo (Private) tên `Flashcards 2026-10-19` / `Flashcards 2026-W43` / `Flashcards 2026-10` theo múi giờ người dùng; cùng từ (không phân biệt hoa thường) trong cùng bộ không tạo thêm thẻ; tối đa 500 câu/bộ.
+- Tra nghĩa phía server: Free Dictionary API (timeout 4s, cache 24h) + dịch MyMemory (timeout 5s, cache 24h), host cố định. **Tắt dịch = không tra gì, thẻ tạo với phần nghĩa trống** (đúng spec). Lỗi dịch vụ ngoài không chặn việc lưu thẻ: `lookup.status` = `found` | `not_found` | `error` | `skipped`.
+- `POST /api/Extension/Translate` (tab Dịch của extension): một từ (không có khoảng trắng, ≤40 ký tự) → Free Dictionary + dịch từ (MyMemory); câu / cụm nhiều từ (≤1000 ký tự) → **LibreTranslate tự host** (`LibreTranslate:BaseUrl`, tuỳ chọn `LibreTranslate:ApiKey`; chưa cấu hình / lỗi → `translationStatus = unavailable`, không ném lỗi). Trả kèm `back` dựng sẵn để thêm flashcard không phải tra lại. Docker compose (`deploy/docker-compose.yml`) có thêm service `libretranslate` (chỉ nạp en,vi qua `LT_LOAD_ONLY`, không mở port).
+- Thông báo rõ khi bộ đích cố định của extension đã bị xoá / mất quyền sửa.
+- Giới hạn đã biết: tạo thẻ đồng thời cùng một từ trong cùng bộ có thể lọt qua kiểm tra trùng (kiểm tra rồi mới ghi, không có ràng buộc DB); Free Dictionary API treo với một số từ (đã gặp với "documentation", "candid"); chưa có hạn mức theo gói cho thẻ.
+- Thẻ nháp (chưa có nghĩa) bị loại khỏi Learn / luyện tập; bản dịch trùng đúng từ gốc (MyMemory trả lại khi không dịch được) mà từ điển cũng không có thì không lưu.
+- Unit test: `LanguageFlashcardTests`, `CaptureFlashcardCommandTests` (tổng 135).
+
 ## [Unreleased] — 2026-10-02
+
+### Added — Chế độ nội dung Markdown cho câu hỏi
+- `TextFormat` có giá trị **`Markdown`** (đổi tên từ `MarkDown` chưa từng được dùng; thứ tự / giá trị số giữ nguyên: Markdown=0, PlainText=1, Html=2). EF vẫn lưu dạng chuỗi nên **không cần migration**; converter đọc không phân biệt hoa thường (`Enum.Parse(..., true)`) nên dòng cũ "MarkDown" nếu có vẫn đọc được.
+- `CreateUpdateQuestionDto.TextFormat` (tuỳ chọn: "PlainText" | "Html" | "Markdown", không phân biệt hoa thường; validator từ chối giá trị khác). Thêm `TextFormatHelper` (`IsValid`, `Normalize`, `Resolve`).
+- Dùng ở mọi nơi tạo / sửa `Question`: `CreateQuestionSetCommand`, `UpdateQuestionSetCommand` (cả nhánh sửa lẫn nhánh thêm), `CreateTestTemplateCommand`, `UpdateTestTemplateCommand`, `CreateTestCommand`, `UpdateTestCommand`. Không gửi `TextFormat` thì giữ mặc định cũ của từng lệnh (Html / PlainText) nên client cũ không đổi hành vi.
+- `Deserializer.Deserialize(question)` (response dạng `CreateUpdateQuestionDto`, dùng cho sửa / copy câu hỏi) trả về `TextFormat`. `QuestionResponseDto`, `QuestionAttemptDetailDto`, `ReviewQuestionDto` đã có sẵn `TextFormat`.
+- `CompareQuestion` (copy câu hỏi vào test / template, kiểm tra câu nào thực sự đổi): khác `TextFormat` được coi là câu hỏi khác; client cũ không gửi `TextFormat` thì bỏ qua so sánh này.
+- Import xlsx: cột **tuỳ chọn** `Text Format` (PlainText | Html | Markdown) trong `FileService`; không có cột / ô trống = như cũ, giá trị lạ làm dòng đó vào danh sách không hợp lệ. File mẫu cũ vẫn dùng được.
+- Unit test: `TextFormatTests` (validator, `Resolve`/`Normalize`, enum + converter, `Deserializer`, `Compare`), `ImportTextFormatColumnTests` (xlsx tạo tại chỗ có / không có cột).
+- Lưu ý triển khai: backend cần được triển khai trước hoặc cùng frontend; backend cũ bỏ qua `textFormat` và lưu câu Markdown thành Html.
+
 
 ### Fixed — QA vòng 2 (đợt sửa lỗi tài khoản / xác thực)
 - **D1 — Khoá tài khoản không nhập lý do**: `BanAccountCommand` lưu `NULL` thay vì chuỗi tiếng Việt mặc định; giao diện tự hiển thị "không có lý do" theo ngôn ngữ.

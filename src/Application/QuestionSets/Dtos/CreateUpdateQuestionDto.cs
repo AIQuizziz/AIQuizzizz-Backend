@@ -29,12 +29,16 @@ public class CreateUpdateQuestionDto
     public Guid? QuestionId { get; set; }
     public string? Type { get; set; }
     public string? QuestionText { get; set; }
-    public string? ExplainText { get; set; } 
+    public string? ExplainText { get; set; }
+    /// <summary>"PlainText" | "Html" | "Markdown". Không gửi = giữ hành vi cũ (Html cho câu mới / câu cũ giữ nguyên mặc định của từng lệnh).</summary>
+    public string? TextFormat { get; set; }
     public float Score { get; set; } = 10;
     public List<CreateMultipleChoiceDto>? MultipleChoices { get; set; }
     public List<CreateMatchingPairDto>? MatchingPairs { get; set; }
     public List<CreateOrderingItemDto>? OrderingItems { get; set; }
     public string? ShortAnswer { get; set; }
+    /// <summary>Mặt sau thẻ ghi nhớ (Type = LanguageFlashcard); mặt trước là QuestionText</summary>
+    public QTypeLanguageFlashcard? Flashcard { get; set; }
     /// <summary>Id media (ảnh/video) đã upload qua /api/Media/Upload</summary>
     public Guid? MediaId { get; set; }
     /// <summary>Chỉ dùng cho response (preview media khi copy/sửa), bị bỏ qua khi gửi lên</summary>
@@ -48,9 +52,9 @@ public class CreateUpdateQuestionDto
                 .NotEmpty().WithMessage($"Loại câu hỏi không được để trống")
                 .Must(type => new[]
                 {
-                    "MultipleChoice", "Matching", "Ordering", "ShortText"
+                    "MultipleChoice", "Matching", "Ordering", "ShortText", "LanguageFlashcard"
                 }.Contains(type))
-                .WithMessage($"Loại câu hỏi phải là 'MultipleChoice', 'Matching', 'Ordering','ShortText'");
+                .WithMessage($"Loại câu hỏi phải là 'MultipleChoice', 'Matching', 'Ordering','ShortText', 'LanguageFlashcard'");
 
             RuleFor(x => x)
                 .Must(question => question.Type switch
@@ -59,9 +63,20 @@ public class CreateUpdateQuestionDto
                     nameof(QuestionType.Matching) => question.MatchingPairs != null && question.MatchingPairs.Any(),
                     nameof(QuestionType.Ordering) => question.OrderingItems != null && question.OrderingItems.Any(),
                     nameof(QuestionType.ShortText) => !string.IsNullOrWhiteSpace(question.ShortAnswer),
+                    nameof(QuestionType.LanguageFlashcard) => question.Flashcard != null,
                     _ => false
                 })
                 .WithMessage("Một hoặc nhiều câu hỏi có loại hoặc dữ liệu không hợp lệ");
+
+            When(x => x.Type == "LanguageFlashcard" && x.Flashcard != null, () =>
+            {
+                RuleFor(x => x.Flashcard)
+                    .Custom((card, context) =>
+                    {
+                        foreach (var error in FlashcardNormalizer.Validate(card))
+                            context.AddFailure(nameof(Flashcard), error);
+                    });
+            });
 
 
             RuleFor(x => x.QuestionText)
@@ -70,6 +85,10 @@ public class CreateUpdateQuestionDto
 
             RuleFor(x => x.ExplainText)
                 .MaximumLength(5000).WithMessage($" Giải thích không được vượt quá 1000 ký tự");
+
+            RuleFor(x => x.TextFormat)
+                .Must(TextFormatHelper.IsValid)
+                .WithMessage("Định dạng nội dung phải là 'PlainText', 'Html' hoặc 'Markdown'");
 
             RuleFor(x => x.Score)
                 .GreaterThanOrEqualTo(0).WithMessage($"Điểm phải lớn hơn hoặc bằng 0")
@@ -88,7 +107,7 @@ public class CreateUpdateQuestionDto
                     .Must(options => options is { Count: <= 10 }).WithMessage("Không được quá 10 lựa chọn")
                     .Must(options => options != null && options.Any(o => o.IsAnswer)).WithMessage($"Phải có ít nhất một lựa chọn đúng")
                     .Must(options => options == null || options
-                        .Select(o => (o.Text ?? string.Empty).Trim().ToLowerInvariant())
+                        .Select(o => (o.Text ?? string.Empty).Trim())
                         .Where(text => text.Length > 0)
                         .GroupBy(text => text)
                         .All(g => g.Count() == 1))
@@ -171,6 +190,7 @@ public class CreateUpdateQuestionDto
                 {
                     Answer = dto.ShortAnswer!
                 }),
+                nameof(QuestionType.LanguageFlashcard) => JsonSerializer.Serialize(FlashcardNormalizer.Normalize(dto.Flashcard!)),
                 _ => throw new InvalidDataException($"Invalid question type: {dto.Type}")
             };
         }
@@ -189,6 +209,7 @@ public class CreateUpdateQuestionDto
                 Type = question.Type.ToString(),
                 QuestionText = question.QuestionText,
                 ExplainText = question.ExplainText,
+                TextFormat = question.TextFormat.ToString(),
                 Score = question.Score,
                 MediaId = question.MediaId,
                 Media = QuestionMediaDto.From(question.MediaId, question.MediaType)
@@ -262,6 +283,10 @@ public class CreateUpdateQuestionDto
                         dto.ShortAnswer = shortAnswer.Answer;
                     }
                     break;
+
+                case QuestionType.LanguageFlashcard:
+                    dto.Flashcard = FlashcardQuizBuilder.Parse(question.DataJson);
+                    break;
             }
 
             return dto;
@@ -272,12 +297,18 @@ public class CreateUpdateQuestionDto
     {
         public static bool CompareQuestion(Question question, CreateUpdateQuestionDto questionDto)
         {
-            var questionResponseDto = QuestionResponseDto.Mapper.FromEntity(question, true, shuffle: false);
+            var questionResponseDto = QuestionResponseDto.Mapper.FromEntity(question, true, shuffle: false, quizView: false);
 
             if (!question.QuestionText!.Trim().ToLower().Equals(questionDto.QuestionText!.Trim().ToLower()))
                 return false;
 
             if (question.Type.ToString() != questionDto.Type)
+                return false;
+
+            // Cùng nội dung nhưng khác định dạng (Markdown/Html/PlainText) là câu hỏi khác.
+            // Client cũ không gửi TextFormat -> không so sánh (giữ hành vi cũ, tránh tạo bản sao thừa).
+            if (!string.IsNullOrWhiteSpace(questionDto.TextFormat)
+                && question.TextFormat != TextFormatHelper.Resolve(questionDto.TextFormat, question.TextFormat))
                 return false;
 
             if (question.MediaId != questionDto.MediaId)
@@ -293,6 +324,13 @@ public class CreateUpdateQuestionDto
                     CompareOrderingQuestion(questionResponseDto.QuestionData.Ordering, questionDto.OrderingItems!),
                 nameof(QuestionType.ShortText) =>
                     string.Equals(questionResponseDto.QuestionData.ShortText?.Trim(), questionDto.ShortAnswer?.Trim(),
+                        StringComparison.OrdinalIgnoreCase),
+                // Thẻ: cùng mặt trước (đã so ở trên) và cùng nghĩa chính coi là trùng
+                nameof(QuestionType.LanguageFlashcard) =>
+                    questionDto.Flashcard != null
+                    && string.Equals(
+                        questionResponseDto.QuestionData.Flashcard is { } existing ? FlashcardQuizBuilder.AnswerText(existing) : null,
+                        FlashcardQuizBuilder.AnswerText(questionDto.Flashcard),
                         StringComparison.OrdinalIgnoreCase),
                 _ => false
             };

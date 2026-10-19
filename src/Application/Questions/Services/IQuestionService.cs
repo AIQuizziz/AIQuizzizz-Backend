@@ -1,5 +1,7 @@
 ﻿using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Application.Questions.Dtos;
+using CleanArchitectureBase.Application.Questions.Utils;
+using CleanArchitectureBase.Domain.Entities;
 
 namespace CleanArchitectureBase.Application.Questions.Services;
 
@@ -38,7 +40,7 @@ public class QuestionService : IQuestionService
 
             // shuffle: false -> trả đáp án theo thứ tự tác giả
             return questions
-                .Select(q => QuestionResponseDto.Mapper.FromEntity(q, isCorrect: null, shuffle: false))
+                .Select(q => QuestionResponseDto.Mapper.FromEntity(q, isCorrect: null, shuffle: false, quizView: false))
                 .ToList();
         }
         {
@@ -68,7 +70,7 @@ public class QuestionService : IQuestionService
                 .ToListAsync(cancellationToken);
 
             return result
-                .Select(x => QuestionResponseDto.Mapper.FromEntity(x.Question, x.IsCorrect, shuffle: false))
+                .Select(x => QuestionResponseDto.Mapper.FromEntity(x.Question, x.IsCorrect, shuffle: false, quizView: false))
                 .ToList();
         }
     }
@@ -124,9 +126,22 @@ public class QuestionService : IQuestionService
 
         var totalQuestionCount = questionSet?.QuestionCount ?? 0;
 
-        var result = await query.Take(questionCount).ToListAsync(cancellationToken);
+        // Thẻ nháp (chưa có nghĩa) không có đáp án để học: bỏ ra rồi mới lấy đủ số câu (bộ tối đa 500 câu nên đọc hết rồi lọc là chấp nhận được)
+        var result = (await query.ToListAsync(cancellationToken))
+            .Where(x => FlashcardQuizBuilder.IsPlayable(x.Question))
+            .Take(questionCount)
+            .ToList();
+        // Thẻ ghi nhớ cần các thẻ khác trong bộ để dựng đáp án nhiễu
+        List<Question>? flashcardPool = null;
+        if (result.Any(x => x.Question.Type == QuestionType.LanguageFlashcard))
+        {
+            flashcardPool = await _context.Questions
+                .Where(q => q.QuestionSetId == questionSetId && !q.IsDeleted && q.Type == QuestionType.LanguageFlashcard)
+                .ToListAsync(cancellationToken);
+        }
+
         var questionDtos = result
-            .Select(x => QuestionResponseDto.Mapper.FromEntity(x.Question, x.IsCorrect))
+            .Select(x => QuestionResponseDto.Mapper.FromEntity(x.Question, x.IsCorrect, flashcardPool: flashcardPool))
             .ToList();
 
         return (questionDtos, totalQuestionCount, completedQuestionCount);

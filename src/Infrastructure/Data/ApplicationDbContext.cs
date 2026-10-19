@@ -61,6 +61,7 @@ public class ApplicationDbContext : IdentityDbContext<UserAccount,
     public DbSet<SystemSetting> SystemSettings  => Set<SystemSetting>();
     public DbSet<Media> Media => Set<Media>();
     public DbSet<UserViolation> UserViolations => Set<UserViolation>();
+    public DbSet<ExtensionSetting> ExtensionSettings => Set<ExtensionSetting>();
 
     // public override DbSet<ApplicationUserRole> UserRoles { get; set; }
     // public override DbSet<ApplicationRole> Roles { get; set; }

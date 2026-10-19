@@ -26,7 +26,7 @@ namespace CleanArchitectureBase.Application.Command.UnitTests.QuestionSets
                 QuestionSetId = questionSet.Id,
                 QuestionText = "Sample Question",
                 Type = QuestionType.MultipleChoice,
-                TextFormat = TextFormat.MarkDown,
+                TextFormat = TextFormat.Markdown,
                 DataJson = "{\"Answer\":\"\\u00DD\"}"
             };
             await AddAsync(question);
@@ -78,7 +78,7 @@ namespace CleanArchitectureBase.Application.Command.UnitTests.QuestionSets
                 QuestionSetId = questionSet.Id,
                 QuestionText = "Sample Question",
                 Type = QuestionType.MultipleChoice,
-                TextFormat = TextFormat.MarkDown,
+                TextFormat = TextFormat.Markdown,
                 DataJson = "{\"Answer\":\"\\u00DD\"}"
             };
             await AddAsync(question);

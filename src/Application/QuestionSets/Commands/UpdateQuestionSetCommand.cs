@@ -5,6 +5,7 @@
     using CleanArchitectureBase.Application.QuestionSets.Dtos;
     using CleanArchitectureBase.Application.QuestionSets.Services;
     using CleanArchitectureBase.Domain.Constants;
+    using CleanArchitectureBase.Application.Questions.Utils;
     using CleanArchitectureBase.Domain.Entities;
 
     namespace CleanArchitectureBase.Application.QuestionSets.Commands;
@@ -139,7 +140,7 @@
                         existing.Type = type;
                         existing.QuestionText = dto.QuestionText;
                         existing.Score = dto.Score;
-                        existing.TextFormat = TextFormat.Html;
+                        existing.TextFormat = TextFormatHelper.Resolve(dto.TextFormat, TextFormat.Html);
                         existing.DataJson = dataJson;
                         existing.Order = position;
                         existing.ExplainText = dto.ExplainText;
@@ -155,7 +156,7 @@
                         QuestionSetId = questionSet.Id,
                         Type = type,
                         QuestionText = dto.QuestionText,
-                        TextFormat = TextFormat.PlainText,
+                        TextFormat = TextFormatHelper.Resolve(dto.TextFormat, TextFormat.PlainText),
                         ExplainText = dto.ExplainText,
                         Score = dto.Score,
                         Order = position,

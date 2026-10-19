@@ -304,6 +304,66 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.ToTable("Comments");
                 });
 
+            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.ExtensionSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("LastModified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceLang")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("StoreContext")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TargetLang")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("TargetMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("TargetQuestionSetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("TranslateEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("ExtensionSettings");
+                });
+
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.Folder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1871,6 +1931,22 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Navigation("ParentComment");
 
                     b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.ExtensionSetting", b =>
+                {
+                    b.HasOne("CleanArchitectureBase.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CleanArchitectureBase.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
                 });
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.Folder", b =>

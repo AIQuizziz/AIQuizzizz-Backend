@@ -13,6 +13,8 @@ public class QuestionResponseDto
     public Guid Id { get; set; }
     public Guid QuestionSetId { get; set; } = Guid.Empty;
     public string Type { get; set; } = null!;
+    /// <summary>Loại gốc khi câu hỏi được dựng lại để học/kiểm tra (vd. LanguageFlashcard được trả với Type = MultipleChoice). Null nếu Type là loại gốc.</summary>
+    public string? OriginalType { get; set; }
     public string? TextFormat { get; set; }
     public string QuestionText { get; set; } = null!;
     public string? ExplainText { get; set; }
@@ -26,19 +28,38 @@ public class QuestionResponseDto
     /// </summary>
     public static class Mapper
     {
+        // Giữ chữ ký 4 tham số riêng: nhiều nơi gọi trong expression tree (.Select trên IQueryable), nơi đó không được bỏ qua tham số tuỳ chọn.
         public static QuestionResponseDto FromEntity(Question question, bool? isCorrect, bool shuffle = true, bool isShowAnswer = true)
+            => FromEntity(question, isCorrect, shuffle, isShowAnswer, true, null);
+
+        public static QuestionResponseDto FromEntity(Question question, bool? isCorrect, bool shuffle = true, bool isShowAnswer = true,
+            bool quizView = true, IEnumerable<Question>? flashcardPool = null)
         {
+            var questionData = QuestionDataDto.Deserializer.FromJson(question.Type, question.DataJson, shuffle: shuffle, isShowAnswer);
+            var type = question.Type.ToString();
+            string? originalType = null;
+
+            // Thẻ ghi nhớ: khi học/kiểm tra được dựng thành trắc nghiệm (đáp án nhiễu lấy từ pool các thẻ cùng bộ);
+            // khi xem/sửa (quizView=false) giữ nguyên là LanguageFlashcard.
+            if (quizView && question.Type == QuestionType.LanguageFlashcard && questionData.Flashcard != null)
+            {
+                questionData.MultipleChoice = FlashcardQuizBuilder.BuildOptions(question, questionData.Flashcard, flashcardPool, shuffle, isShowAnswer);
+                originalType = type;
+                type = nameof(QuestionType.MultipleChoice);
+            }
+
             return new QuestionResponseDto
             {
                 Id = question.Id,
                 QuestionSetId = question.QuestionSetId ?? Guid.Empty,
-                Type = question.Type.ToString(),
+                Type = type,
+                OriginalType = originalType,
                 TextFormat = question.TextFormat.ToString(),
                 QuestionText = question.QuestionText ?? string.Empty,
                 ExplainText = question.ExplainText,
                 Score = question.Score,
                 IsCorrect = isCorrect,
-                QuestionData = QuestionDataDto.Deserializer.FromJson(question.Type, question.DataJson, shuffle: shuffle, isShowAnswer),
+                QuestionData = questionData,
                 Media = QuestionMediaDto.From(question.MediaId, question.MediaType)
             };
         }
@@ -51,6 +72,8 @@ public class QuestionDataDto
     public MatchingDataDto? Matching { get; set; }
     public List<OrderingItemDto>? Ordering { get; set; }
     public string? ShortText { get; set; }
+    /// <summary>Mặt sau thẻ ghi nhớ (chỉ có với LanguageFlashcard)</summary>
+    public QTypeLanguageFlashcard? Flashcard { get; set; }
 
 
     public static class Deserializer
@@ -86,6 +109,10 @@ public class QuestionDataDto
 
                 case QuestionType.ShortText:
                     result.ShortText = DeserializeShortText(dataJson, isShowAnswer);
+                    break;
+
+                case QuestionType.LanguageFlashcard:
+                    result.Flashcard = FlashcardQuizBuilder.Parse(dataJson);
                     break;
             }
 
