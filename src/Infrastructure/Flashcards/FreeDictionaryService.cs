@@ -39,7 +39,7 @@ public partial class FreeDictionaryService : IDictionaryLookupService
 
         try
         {
-            using var response = await _http.GetAsync($"{BaseUrl}{lang}/{Uri.EscapeDataString(word.ToLowerInvariant())}", cancellationToken);
+            using var response = await GetWithRetryAsync($"{BaseUrl}{lang}/{Uri.EscapeDataString(word.ToLowerInvariant())}", cancellationToken);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _cache.Set(key, DictionaryLookupResult.NotFound, NotFoundTtl);
@@ -63,6 +63,26 @@ public partial class FreeDictionaryService : IDictionaryLookupService
             if (cancellationToken.IsCancellationRequested) throw;
             _logger.LogWarning(ex, "Tra từ điển thất bại cho {Lang}/{Word}", lang, word);
             return DictionaryLookupResult.Error;
+        }
+    }
+
+    /// <summary>Số lần gọi tối đa khi dịch vụ trả lỗi máy chủ tạm thời</summary>
+    private const int MaxAttempts = 3;
+
+    /// <summary>
+    /// Free Dictionary API hay trả 5xx thoáng qua (đã gặp HTTP 530 "error code: 1033" của Cloudflare với cả từ có thật, lần sau lại 200).
+    /// Gặp 5xx thì thử lại ngay vài lần ngắn; 404 (không có từ), 2xx và timeout không thử lại (timeout đã tốn cả thời gian chờ).
+    /// </summary>
+    private async Task<HttpResponseMessage> GetWithRetryAsync(string url, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            var response = await _http.GetAsync(url, cancellationToken);
+            if ((int)response.StatusCode < 500 || attempt >= MaxAttempts) return response;
+
+            _logger.LogInformation("Free Dictionary API trả {Status}, thử lại lần {Attempt}", (int)response.StatusCode, attempt + 1);
+            response.Dispose();
+            await Task.Delay(TimeSpan.FromMilliseconds(250 * attempt), cancellationToken);
         }
     }
 
