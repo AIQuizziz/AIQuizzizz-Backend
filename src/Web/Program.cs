@@ -78,6 +78,7 @@ app.UseHealthChecks("/health");
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseMiddleware<CleanArchitectureBase.Web.Infrastructure.UserStatusMiddleware>();
+app.UseRateLimiter();
 app.UseHangfireDashboard("/hangfire");
 
 app.UseSwaggerUi(settings =>

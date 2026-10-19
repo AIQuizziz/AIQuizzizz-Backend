@@ -2,6 +2,8 @@
 using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Infrastructure.Data;
 using CleanArchitectureBase.Web.Services;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using NSwag;
 using NSwag.Generation.Processors.Security;
@@ -46,6 +48,24 @@ public static class DependencyInjection
             });
 
             configure.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("JWT"));
+        });
+
+        // Extension trình duyệt: mỗi người dùng tối đa 60 request/phút (thiếu token thì tính theo IP)
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(Endpoints.ExtensionEndpoints.RateLimitPolicy, httpContext =>
+            {
+                var key = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                          ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                          ?? "anonymous";
+                return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 60,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                });
+            });
         });
 
         return services;

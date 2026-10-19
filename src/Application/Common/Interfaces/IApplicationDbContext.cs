@@ -43,5 +43,6 @@ public interface
     public DbSet<SystemSetting>  SystemSettings { get; }
     public DbSet<Media> Media { get; }
     public DbSet<UserViolation> UserViolations { get; }
+    public DbSet<ExtensionSetting> ExtensionSettings { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
