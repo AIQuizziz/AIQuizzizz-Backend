@@ -182,14 +182,15 @@ public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCo
         string front, string sourceLang, string targetLang, bool translate, CancellationToken ct)
     {
         var card = new QTypeLanguageFlashcard();
-        var entry = await _dictionary.LookupAsync(front, sourceLang, ct);
+        var lookup = await _dictionary.LookupAsync(front, sourceLang, ct);
+        var entry = lookup.Entry;
         if (entry != null)
         {
             card.Back.Phonetic = entry.Phonetic;
             card.Back.AudioUrl = entry.AudioUrl;
             card.Back.Meanings = entry.Meanings;
         }
-        card.Lookup = new QFlashcardLookup { Provider = Provider, Status = entry != null ? "found" : "not_found" };
+        card.Lookup = new QFlashcardLookup { Provider = Provider, Status = lookup.Status };
 
         var translated = false;
         if (translate)

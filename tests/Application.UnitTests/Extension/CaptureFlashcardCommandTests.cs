@@ -36,13 +36,15 @@ public class CaptureFlashcardCommandTests
         _sets = new Mock<IQuestionSetService>();
         _sets.Setup(s => s.CanUserEditQuestionSet(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(true);
 
+        _dictionary.Setup(d => d.LookupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DictionaryLookupResult.NotFound);
         _dictionary.Setup(d => d.LookupAsync("serendipity", "en", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DictionaryEntry
+            .ReturnsAsync(DictionaryLookupResult.Found(new DictionaryEntry
             {
                 Phonetic = "/ˌsɛrənˈdɪpɪti/",
                 AudioUrl = "https://example.com/a.mp3",
                 Meanings = { new QFlashcardMeaning { Pos = "noun", Definition = "finding good things by chance" } }
-            });
+            }));
     }
 
     [TearDown]
@@ -99,8 +101,7 @@ public class CaptureFlashcardCommandTests
     {
         Settings(ExtensionTargetMode.Daily);
         await _db.SaveChangesAsync();
-        _dictionary.Setup(d => d.LookupAsync("ephemeral", "en", It.IsAny<CancellationToken>())).ReturnsAsync((DictionaryEntry?)null);
-
+        
         await Handler().Handle(Cmd(), default);
         await Handler().Handle(Cmd("ephemeral"), default);
 
@@ -194,6 +195,19 @@ public class CaptureFlashcardCommandTests
         result.Preview.Should().BeNull();
         var card = JsonSerializer.Deserialize<QTypeLanguageFlashcard>((await _db.Questions.SingleAsync()).DataJson!)!;
         card.Back.Meanings.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task DictionaryServiceError_IsRecordedAsError_NotAsNotFound_AndCardIsStillSaved()
+    {
+        Settings(ExtensionTargetMode.Daily, translate: false);
+        await _db.SaveChangesAsync();
+        _dictionary.Setup(d => d.LookupAsync("candid", "en", It.IsAny<CancellationToken>())).ReturnsAsync(DictionaryLookupResult.Error);
+
+        var result = await Handler().Handle(Cmd("candid"), default);
+
+        result.LookupStatus.Should().Be("error");
+        (await _db.Questions.CountAsync()).Should().Be(1);
     }
 
     [Test]

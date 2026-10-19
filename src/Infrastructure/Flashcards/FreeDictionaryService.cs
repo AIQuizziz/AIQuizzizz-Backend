@@ -28,40 +28,41 @@ public partial class FreeDictionaryService : IDictionaryLookupService
     [GeneratedRegex("^[a-z]{2,3}(-[A-Za-z]{2,4})?$")]
     private static partial Regex LangPattern();
 
-    public async Task<DictionaryEntry?> LookupAsync(string word, string lang, CancellationToken cancellationToken = default)
+    public async Task<DictionaryLookupResult> LookupAsync(string word, string lang, CancellationToken cancellationToken = default)
     {
         word = (word ?? string.Empty).Trim();
         lang = (lang ?? "en").Trim();
-        if (word.Length == 0 || word.Length > 100 || !LangPattern().IsMatch(lang)) return null;
+        if (word.Length == 0 || word.Length > 100 || !LangPattern().IsMatch(lang)) return DictionaryLookupResult.NotFound;
 
         var key = $"dict:{lang}:{word.ToLowerInvariant()}";
-        if (_cache.TryGetValue(key, out DictionaryEntry? cached)) return cached;
+        if (_cache.TryGetValue(key, out DictionaryLookupResult? cached) && cached != null) return cached;
 
         try
         {
             using var response = await _http.GetAsync($"{BaseUrl}{lang}/{Uri.EscapeDataString(word.ToLowerInvariant())}", cancellationToken);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                _cache.Set(key, (DictionaryEntry?)null, NotFoundTtl);
-                return null;
+                _cache.Set(key, DictionaryLookupResult.NotFound, NotFoundTtl);
+                return DictionaryLookupResult.NotFound;
             }
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Free Dictionary API trả {Status} cho {Lang}/{Word}", (int)response.StatusCode, lang, word);
-                return null; // lỗi tạm thời: không cache
+                return DictionaryLookupResult.Error; // lỗi tạm thời: không cache
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
             var entry = Parse(doc.RootElement);
-            _cache.Set(key, entry, entry == null ? NotFoundTtl : FoundTtl);
-            return entry;
+            var result = entry == null ? DictionaryLookupResult.NotFound : DictionaryLookupResult.Found(entry);
+            _cache.Set(key, result, entry == null ? NotFoundTtl : FoundTtl);
+            return result;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
             if (cancellationToken.IsCancellationRequested) throw;
             _logger.LogWarning(ex, "Tra từ điển thất bại cho {Lang}/{Word}", lang, word);
-            return null;
+            return DictionaryLookupResult.Error;
         }
     }
 

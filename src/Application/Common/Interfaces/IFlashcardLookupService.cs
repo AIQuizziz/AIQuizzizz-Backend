@@ -9,10 +9,21 @@ public class DictionaryEntry
     public List<QFlashcardMeaning> Meanings { get; set; } = new();
 }
 
-/// <summary>Tra từ điển (hiện dùng Free Dictionary API). Trả null khi không tìm thấy hoặc dịch vụ ngoài lỗi.</summary>
+/// <summary>Kết quả tra từ: found (Entry có dữ liệu) | not_found (từ không có trong từ điển) | error (dịch vụ ngoài lỗi/timeout - tạm thời).</summary>
+public class DictionaryLookupResult
+{
+    public string Status { get; init; } = "error";
+    public DictionaryEntry? Entry { get; init; }
+
+    public static DictionaryLookupResult Found(DictionaryEntry entry) => new() { Status = "found", Entry = entry };
+    public static readonly DictionaryLookupResult NotFound = new() { Status = "not_found" };
+    public static readonly DictionaryLookupResult Error = new() { Status = "error" };
+}
+
+/// <summary>Tra từ điển (hiện dùng Free Dictionary API).</summary>
 public interface IDictionaryLookupService
 {
-    Task<DictionaryEntry?> LookupAsync(string word, string lang, CancellationToken cancellationToken = default);
+    Task<DictionaryLookupResult> LookupAsync(string word, string lang, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Dịch văn bản ngắn giữa hai ngôn ngữ. Trả null khi thất bại.</summary>
