@@ -10,7 +10,8 @@ public enum QuestionType
 
 public enum TextFormat
 {
-    MarkDown,
+    // Giữ nguyên thứ tự/giá trị số. Giá trị lưu DB là chuỗi ("Markdown"); dòng cũ "MarkDown" vẫn đọc được (parse không phân biệt hoa thường).
+    Markdown,
     PlainText,
     Html
 }

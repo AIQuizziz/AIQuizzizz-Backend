@@ -2,6 +2,7 @@
 using CleanArchitectureBase.Application.Common.Security;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
 using CleanArchitectureBase.Application.TestTemplates.Service;
+using CleanArchitectureBase.Application.Questions.Utils;
 using CleanArchitectureBase.Domain.Entities;
 
 namespace CleanArchitectureBase.Application.TestTemplates;
@@ -99,7 +100,7 @@ public class CreateTestTemplateCommandHandler : IRequestHandler<CreateTestTempla
                 Type = Enum.Parse<QuestionType>(questionDto.Type!),
                 QuestionText = questionDto.QuestionText,
                 ExplainText = questionDto.ExplainText,
-                TextFormat = TextFormat.PlainText,
+                TextFormat = TextFormatHelper.Resolve(questionDto.TextFormat, TextFormat.PlainText),
                 Score = questionDto.Score,
                 Order = questionOrder++
             };

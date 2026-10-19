@@ -29,7 +29,9 @@ public class CreateUpdateQuestionDto
     public Guid? QuestionId { get; set; }
     public string? Type { get; set; }
     public string? QuestionText { get; set; }
-    public string? ExplainText { get; set; } 
+    public string? ExplainText { get; set; }
+    /// <summary>"PlainText" | "Html" | "Markdown". Không gửi = giữ hành vi cũ (Html cho câu mới / câu cũ giữ nguyên mặc định của từng lệnh).</summary>
+    public string? TextFormat { get; set; }
     public float Score { get; set; } = 10;
     public List<CreateMultipleChoiceDto>? MultipleChoices { get; set; }
     public List<CreateMatchingPairDto>? MatchingPairs { get; set; }
@@ -71,6 +73,10 @@ public class CreateUpdateQuestionDto
             RuleFor(x => x.ExplainText)
                 .MaximumLength(5000).WithMessage($" Giải thích không được vượt quá 1000 ký tự");
 
+            RuleFor(x => x.TextFormat)
+                .Must(TextFormatHelper.IsValid)
+                .WithMessage("Định dạng nội dung phải là 'PlainText', 'Html' hoặc 'Markdown'");
+
             RuleFor(x => x.Score)
                 .GreaterThanOrEqualTo(0).WithMessage($"Điểm phải lớn hơn hoặc bằng 0")
                 .LessThanOrEqualTo(999).WithMessage($"Điểm không được vượt quá 999");
@@ -88,7 +94,7 @@ public class CreateUpdateQuestionDto
                     .Must(options => options is { Count: <= 10 }).WithMessage("Không được quá 10 lựa chọn")
                     .Must(options => options != null && options.Any(o => o.IsAnswer)).WithMessage($"Phải có ít nhất một lựa chọn đúng")
                     .Must(options => options == null || options
-                        .Select(o => (o.Text ?? string.Empty).Trim().ToLowerInvariant())
+                        .Select(o => (o.Text ?? string.Empty).Trim())
                         .Where(text => text.Length > 0)
                         .GroupBy(text => text)
                         .All(g => g.Count() == 1))
@@ -189,6 +195,7 @@ public class CreateUpdateQuestionDto
                 Type = question.Type.ToString(),
                 QuestionText = question.QuestionText,
                 ExplainText = question.ExplainText,
+                TextFormat = question.TextFormat.ToString(),
                 Score = question.Score,
                 MediaId = question.MediaId,
                 Media = QuestionMediaDto.From(question.MediaId, question.MediaType)
@@ -278,6 +285,12 @@ public class CreateUpdateQuestionDto
                 return false;
 
             if (question.Type.ToString() != questionDto.Type)
+                return false;
+
+            // Cùng nội dung nhưng khác định dạng (Markdown/Html/PlainText) là câu hỏi khác.
+            // Client cũ không gửi TextFormat -> không so sánh (giữ hành vi cũ, tránh tạo bản sao thừa).
+            if (!string.IsNullOrWhiteSpace(questionDto.TextFormat)
+                && question.TextFormat != TextFormatHelper.Resolve(questionDto.TextFormat, question.TextFormat))
                 return false;
 
             if (question.MediaId != questionDto.MediaId)

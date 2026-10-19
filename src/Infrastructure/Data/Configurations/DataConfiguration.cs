@@ -120,7 +120,7 @@ public class QuestionConfiguration : IEntityTypeConfiguration<Question>
             .IsRequired()
             .HasConversion(
                 v => v.ToString(),
-                v => (TextFormat)Enum.Parse(typeof(TextFormat), v));
+                v => (TextFormat)Enum.Parse(typeof(TextFormat), v, true));
 
         builder.Property(q => q.Score)
             .HasColumnType("numeric(5,2)")

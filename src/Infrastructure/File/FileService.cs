@@ -1,6 +1,7 @@
 ﻿using CleanArchitectureBase.Application.Common.Exceptions;
 using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Application.Common.Models;
+using CleanArchitectureBase.Application.Questions.Utils;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
 using CleanArchitectureBase.Application.TestTemplates;
 using CleanArchitectureBase.Domain.Constants;
@@ -76,7 +77,12 @@ public class FileService : IFileService
                     
                     question.Type = NormalizeQuestionType(reader.GetValue(headers.IndexOf("Question Type"))?.ToString());
                     question.QuestionText = reader.GetValue(headers.IndexOf("Question Text"))?.ToString();
-                    
+
+                    // Cột tuỳ chọn "Text Format" (PlainText | Html | Markdown). Không có cột / ô trống = hành vi cũ.
+                    var textFormatIndex = headers.IndexOf("Text Format");
+                    if (textFormatIndex >= 0)
+                        question.TextFormat = TextFormatHelper.Normalize(reader.GetValue(textFormatIndex)?.ToString());
+
                     try
                     {
                         question.Score = Convert.ToSingle(reader.GetValue(headers.IndexOf("Score")));

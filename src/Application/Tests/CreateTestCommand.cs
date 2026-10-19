@@ -5,6 +5,7 @@ using CleanArchitectureBase.Application.Plans.Service;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
 using CleanArchitectureBase.Application.Tests.Service;
 using CleanArchitectureBase.Domain.Constants;
+using CleanArchitectureBase.Application.Questions.Utils;
 using CleanArchitectureBase.Domain.Entities;
 
 namespace CleanArchitectureBase.Application.Tests;
@@ -156,7 +157,7 @@ public class CreateTestCommandHandler : IRequestHandler<CreateTestCommand, Guid>
                 Type = Enum.Parse<QuestionType>(q.Type!),
                 QuestionText = q.QuestionText,
                 ExplainText = q.ExplainText,
-                TextFormat = TextFormat.PlainText,
+                TextFormat = TextFormatHelper.Resolve(q.TextFormat, TextFormat.PlainText),
                 Score = q.Score,
                 Order = index,
                 DataJson = CreateUpdateQuestionDto.Serializer.Serialize(q)

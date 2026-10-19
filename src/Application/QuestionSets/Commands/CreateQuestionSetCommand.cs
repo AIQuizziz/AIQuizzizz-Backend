@@ -1,6 +1,7 @@
 ﻿using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Application.Common.Security;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
+using CleanArchitectureBase.Application.Questions.Utils;
 using CleanArchitectureBase.Domain.Entities;
 
 namespace CleanArchitectureBase.Application.QuestionSets.Commands;
@@ -83,7 +84,7 @@ public class CreateQuestionSetCommandHandler : IRequestHandler<CreateQuestionSet
                 ExplainText = questionDto.ExplainText,
                 Type = Enum.Parse<QuestionType>(questionDto.Type!),
                 QuestionText = questionDto.QuestionText,
-                TextFormat = TextFormat.Html, 
+                TextFormat = TextFormatHelper.Resolve(questionDto.TextFormat, TextFormat.Html),
                 Score = questionDto.Score,
                 Order = questionOrder++
             };

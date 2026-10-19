@@ -4,6 +4,17 @@
 
 ## [Unreleased] — 2026-10-02
 
+### Added — Chế độ nội dung Markdown cho câu hỏi
+- `TextFormat` có giá trị **`Markdown`** (đổi tên từ `MarkDown` chưa từng được dùng; thứ tự / giá trị số giữ nguyên: Markdown=0, PlainText=1, Html=2). EF vẫn lưu dạng chuỗi nên **không cần migration**; converter đọc không phân biệt hoa thường (`Enum.Parse(..., true)`) nên dòng cũ "MarkDown" nếu có vẫn đọc được.
+- `CreateUpdateQuestionDto.TextFormat` (tuỳ chọn: "PlainText" | "Html" | "Markdown", không phân biệt hoa thường; validator từ chối giá trị khác). Thêm `TextFormatHelper` (`IsValid`, `Normalize`, `Resolve`).
+- Dùng ở mọi nơi tạo / sửa `Question`: `CreateQuestionSetCommand`, `UpdateQuestionSetCommand` (cả nhánh sửa lẫn nhánh thêm), `CreateTestTemplateCommand`, `UpdateTestTemplateCommand`, `CreateTestCommand`, `UpdateTestCommand`. Không gửi `TextFormat` thì giữ mặc định cũ của từng lệnh (Html / PlainText) nên client cũ không đổi hành vi.
+- `Deserializer.Deserialize(question)` (response dạng `CreateUpdateQuestionDto`, dùng cho sửa / copy câu hỏi) trả về `TextFormat`. `QuestionResponseDto`, `QuestionAttemptDetailDto`, `ReviewQuestionDto` đã có sẵn `TextFormat`.
+- `CompareQuestion` (copy câu hỏi vào test / template, kiểm tra câu nào thực sự đổi): khác `TextFormat` được coi là câu hỏi khác; client cũ không gửi `TextFormat` thì bỏ qua so sánh này.
+- Import xlsx: cột **tuỳ chọn** `Text Format` (PlainText | Html | Markdown) trong `FileService`; không có cột / ô trống = như cũ, giá trị lạ làm dòng đó vào danh sách không hợp lệ. File mẫu cũ vẫn dùng được.
+- Unit test: `TextFormatTests` (validator, `Resolve`/`Normalize`, enum + converter, `Deserializer`, `Compare`), `ImportTextFormatColumnTests` (xlsx tạo tại chỗ có / không có cột).
+- Lưu ý triển khai: backend cần được triển khai trước hoặc cùng frontend; backend cũ bỏ qua `textFormat` và lưu câu Markdown thành Html.
+
+
 ### Fixed — QA vòng 2 (đợt sửa lỗi tài khoản / xác thực)
 - **D1 — Khoá tài khoản không nhập lý do**: `BanAccountCommand` lưu `NULL` thay vì chuỗi tiếng Việt mặc định; giao diện tự hiển thị "không có lý do" theo ngôn ngữ.
 - **D1 — Lý do auto-ban có mã ổn định**: `ModerationService` lưu `AUTO_BAN_STRIKES:{số vi phạm}:{số ngày}` để frontend dịch vi/en (dữ liệu cũ dạng văn bản tự do vẫn hiển thị bình thường). Email gửi cho user vẫn là văn bản song ngữ VI / EN.
