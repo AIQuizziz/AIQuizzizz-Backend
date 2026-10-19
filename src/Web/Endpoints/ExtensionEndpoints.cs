@@ -18,6 +18,14 @@ public class ExtensionEndpoints : EndpointGroupBase
         group.MapPut(UpdateExtensionSettings, "Settings");
         group.MapGet(GetWritableQuestionSets, "QuestionSets");
         group.MapPost(CaptureFlashcard, "Flashcards");
+        group.MapDelete(UndoCaptureFlashcard, "Flashcards/{questionId}");
+    }
+
+    /// <summary>Hoàn tác thẻ vừa thêm (trong vài phút đầu)</summary>
+    public async Task<Ok<ApiResponse>> UndoCaptureFlashcard(Guid questionId, ISender sender)
+    {
+        await sender.Send(new UndoCaptureFlashcardCommand { QuestionId = questionId });
+        return ApiResponse.SuccessResult().ToOk();
     }
 
     public async Task<Ok<ApiResponse<ExtensionSettingsDto>>> GetExtensionSettings(ISender sender)
