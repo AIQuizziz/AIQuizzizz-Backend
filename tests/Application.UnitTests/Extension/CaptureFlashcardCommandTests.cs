@@ -266,6 +266,20 @@ public class CaptureFlashcardCommandTests
     }
 
     [Test]
+    public async Task FixedMode_WhenTheTargetSetWasDeleted_ExplainsWhatToDo()
+    {
+        var set = await AddOwnedSet("Mine");
+        Settings(ExtensionTargetMode.Fixed, fixedSet: set.Id);
+        set.IsDeleted = true;
+        await _db.SaveChangesAsync();
+
+        var act = () => Handler().Handle(Cmd(), default);
+
+        (await act.Should().ThrowAsync<ErrorCodeException>())
+            .Which.Errors.Values.SelectMany(v => v).Should().ContainSingle(m => m.Contains("đã bị xoá") && m.Contains("tab Cài đặt"));
+    }
+
+    [Test]
     public async Task FixedMode_RequiresEditPermission()
     {
         var set = await AddOwnedSet("Mine");

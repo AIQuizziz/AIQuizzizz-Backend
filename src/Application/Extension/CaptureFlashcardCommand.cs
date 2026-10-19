@@ -245,9 +245,11 @@ public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCo
         if (fixedId.HasValue)
         {
             var set = await _context.QuestionSets.FirstOrDefaultAsync(q => q.Id == fixedId.Value && !q.IsDeleted, ct)
-                      ?? throw new ErrorCodeException(ErrorCodes.QUESTION_SET_NOT_FOUND);
+                      ?? throw new ErrorCodeException(ErrorCodes.QUESTION_SET_NOT_FOUND,
+                          "Bộ câu hỏi đích trong cài đặt extension đã bị xoá. Hãy chọn bộ khác trong tab Cài đặt.");
             if (!await _questionSetService.CanUserEditQuestionSet(userId, set.Id))
-                throw new ErrorCodeException(ErrorCodes.COMMON_FORBIDDEN);
+                throw new ErrorCodeException(ErrorCodes.COMMON_FORBIDDEN,
+                    "Bạn không còn quyền sửa bộ câu hỏi đích trong cài đặt extension. Hãy chọn bộ khác trong tab Cài đặt.");
             return set;
         }
 
