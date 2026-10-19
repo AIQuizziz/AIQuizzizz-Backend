@@ -15,8 +15,6 @@ public class PlanEndpoints : EndpointGroupBase
         var group = app.MapGroup(this);
 
         group.MapGet(GetDetailPlan, "/{planId}");
-        group.MapGet(GetRevenueByYear, "/Revenue");
-        group.MapGet(GetNumberOfNewClassByYear, "/NumberOfNewClass");
         group.MapGet(GetPlatformOverview, "/PlatformOverview");
         group.MapGet(GetCurrentPlan, "/CurrentPlan");
         group.MapPost(CreateUpdatePlan, "");
@@ -75,26 +73,6 @@ public class PlanEndpoints : EndpointGroupBase
     )
     {
         var result = await sender.Send(query);
-        return result.ToOk();
-    }
-    
-    public async Task<Ok<ApiResponse<List<RevenueDto>>>> GetRevenueByYear(
-        [FromQuery] int year,
-        ISender sender
-    )
-    {
-        var rq = new GetRevenueByYearQuery { Year = year };
-        var result = await sender.Send(rq);
-        return result.ToOk();
-    }
-    
-    public async Task<Ok<ApiResponse<List<NumberOfNewClassDto>>>> GetNumberOfNewClassByYear(
-        [FromQuery] int year,
-        ISender sender
-    )
-    {
-        var rq = new GetNumberOfNewClassByYearQuery { Year = year };
-        var result = await sender.Send(rq);
         return result.ToOk();
     }
     
