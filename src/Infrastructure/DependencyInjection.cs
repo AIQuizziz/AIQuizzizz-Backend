@@ -204,6 +204,7 @@ public static class DependencyInjection
         // Thẻ ghi nhớ từ extension: tra từ điển + dịch (host cố định, có cache)
         services.AddHttpClient<IDictionaryLookupService, CleanArchitectureBase.Infrastructure.Flashcards.FreeDictionaryService>(c => c.Timeout = TimeSpan.FromSeconds(4));
         services.AddHttpClient<ITranslationService, CleanArchitectureBase.Infrastructure.Flashcards.MyMemoryTranslationService>(c => c.Timeout = TimeSpan.FromSeconds(5));
+        services.AddHttpClient<ISentenceTranslationService, CleanArchitectureBase.Infrastructure.Flashcards.LibreTranslateService>(c => c.Timeout = TimeSpan.FromSeconds(15));
         services.AddScoped<IModerationService, ModerationService>();
 
         services.AddSingleton<IGoogleAccessTokenProvider>(provider =>

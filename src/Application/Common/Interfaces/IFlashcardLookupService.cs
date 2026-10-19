@@ -31,3 +31,19 @@ public interface ITranslationService
 {
     Task<string?> TranslateAsync(string text, string fromLang, string toLang, CancellationToken cancellationToken = default);
 }
+
+public class SentenceTranslationResult
+{
+    /// <summary>ok | unavailable (chưa cấu hình / dịch vụ lỗi / không hỗ trợ cặp ngôn ngữ)</summary>
+    public string Status { get; init; } = "unavailable";
+    public string? Text { get; init; }
+
+    public static SentenceTranslationResult Ok(string text) => new() { Status = "ok", Text = text };
+    public static readonly SentenceTranslationResult Unavailable = new();
+}
+
+/// <summary>Dịch câu / đoạn ngắn bằng LibreTranslate tự host (cấu hình LibreTranslate:BaseUrl).</summary>
+public interface ISentenceTranslationService
+{
+    Task<SentenceTranslationResult> TranslateAsync(string text, string fromLang, string toLang, CancellationToken cancellationToken = default);
+}

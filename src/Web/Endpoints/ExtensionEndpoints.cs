@@ -18,7 +18,15 @@ public class ExtensionEndpoints : EndpointGroupBase
         group.MapPut(UpdateExtensionSettings, "Settings");
         group.MapGet(GetWritableQuestionSets, "QuestionSets");
         group.MapPost(CaptureFlashcard, "Flashcards");
+        group.MapPost(TranslateText, "Translate");
         group.MapDelete(UndoCaptureFlashcard, "Flashcards/{questionId}");
+    }
+
+    /// <summary>Dịch văn bản vừa bôi đen: một từ -> từ điển + dịch từ; câu -> LibreTranslate</summary>
+    public async Task<Ok<ApiResponse<TranslateResultDto>>> TranslateText([FromBody] TranslateTextQuery query, ISender sender)
+    {
+        var result = await sender.Send(query);
+        return result.ToOk();
     }
 
     /// <summary>Xoá một thẻ (hoàn tác / xoá từ Side Panel); cần quyền sửa bộ chứa thẻ</summary>
