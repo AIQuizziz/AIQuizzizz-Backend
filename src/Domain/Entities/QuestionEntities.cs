@@ -5,7 +5,9 @@ public enum QuestionType
     MultipleChoice,
     Matching,
     Ordering,
-    ShortText
+    ShortText,
+    /// <summary>Thẻ ghi nhớ ngôn ngữ: mặt trước = QuestionText, mặt sau = DataJson (QTypeLanguageFlashcard). Khi học/kiểm tra được dựng thành trắc nghiệm.</summary>
+    LanguageFlashcard
 }
 
 public enum TextFormat
@@ -81,6 +83,59 @@ public class QTypeOrderingItem
 public class QTypeShortAnswer
 {
     public required string Answer { get; set; }
+}
+
+/// <summary>
+/// DataJson của QuestionType.LanguageFlashcard (v = 1). Mặt trước là Question.QuestionText.
+/// Đáp án nhiễu của câu trắc nghiệm KHÔNG lưu ở đây - được dựng lúc học/kiểm tra từ các thẻ khác trong bộ.
+/// </summary>
+public class QTypeLanguageFlashcard
+{
+    [System.Text.Json.Serialization.JsonPropertyName("v")] public int V { get; set; } = 1;
+    [System.Text.Json.Serialization.JsonPropertyName("back")] public QFlashcardBack Back { get; set; } = new();
+    [System.Text.Json.Serialization.JsonPropertyName("lang")] public QFlashcardLang? Lang { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("source")] public QFlashcardSource? Source { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("lookup")] public QFlashcardLookup? Lookup { get; set; }
+}
+
+public class QFlashcardBack
+{
+    [System.Text.Json.Serialization.JsonPropertyName("meanings")] public List<QFlashcardMeaning> Meanings { get; set; } = new();
+    [System.Text.Json.Serialization.JsonPropertyName("phonetic")] public string? Phonetic { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("audioUrl")] public string? AudioUrl { get; set; }
+}
+
+public class QFlashcardMeaning
+{
+    /// <summary>Từ loại (noun, verb, adjective...)</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("pos")] public string? Pos { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("definition")] public string Definition { get; set; } = string.Empty;
+    /// <summary>Nghĩa ở ngôn ngữ đích (khi bật dịch)</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("translation")] public string? Translation { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("examples")] public List<string> Examples { get; set; } = new();
+    [System.Text.Json.Serialization.JsonPropertyName("synonyms")] public List<string> Synonyms { get; set; } = new();
+}
+
+public class QFlashcardLang
+{
+    [System.Text.Json.Serialization.JsonPropertyName("from")] public string? From { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("to")] public string? To { get; set; }
+}
+
+public class QFlashcardSource
+{
+    [System.Text.Json.Serialization.JsonPropertyName("url")] public string? Url { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("title")] public string? Title { get; set; }
+    /// <summary>Câu chứa từ được bôi đen</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("context")] public string? Context { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("capturedAt")] public DateTime? CapturedAt { get; set; }
+}
+
+public class QFlashcardLookup
+{
+    [System.Text.Json.Serialization.JsonPropertyName("provider")] public string? Provider { get; set; }
+    /// <summary>found | not_found | skipped</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("status")] public string? Status { get; set; }
 }
 
 //====Kết thúc JSON

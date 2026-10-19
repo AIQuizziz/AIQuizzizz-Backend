@@ -37,6 +37,8 @@ public class CreateUpdateQuestionDto
     public List<CreateMatchingPairDto>? MatchingPairs { get; set; }
     public List<CreateOrderingItemDto>? OrderingItems { get; set; }
     public string? ShortAnswer { get; set; }
+    /// <summary>Mặt sau thẻ ghi nhớ (Type = LanguageFlashcard); mặt trước là QuestionText</summary>
+    public QTypeLanguageFlashcard? Flashcard { get; set; }
     /// <summary>Id media (ảnh/video) đã upload qua /api/Media/Upload</summary>
     public Guid? MediaId { get; set; }
     /// <summary>Chỉ dùng cho response (preview media khi copy/sửa), bị bỏ qua khi gửi lên</summary>
@@ -50,9 +52,9 @@ public class CreateUpdateQuestionDto
                 .NotEmpty().WithMessage($"Loại câu hỏi không được để trống")
                 .Must(type => new[]
                 {
-                    "MultipleChoice", "Matching", "Ordering", "ShortText"
+                    "MultipleChoice", "Matching", "Ordering", "ShortText", "LanguageFlashcard"
                 }.Contains(type))
-                .WithMessage($"Loại câu hỏi phải là 'MultipleChoice', 'Matching', 'Ordering','ShortText'");
+                .WithMessage($"Loại câu hỏi phải là 'MultipleChoice', 'Matching', 'Ordering','ShortText', 'LanguageFlashcard'");
 
             RuleFor(x => x)
                 .Must(question => question.Type switch
@@ -61,9 +63,20 @@ public class CreateUpdateQuestionDto
                     nameof(QuestionType.Matching) => question.MatchingPairs != null && question.MatchingPairs.Any(),
                     nameof(QuestionType.Ordering) => question.OrderingItems != null && question.OrderingItems.Any(),
                     nameof(QuestionType.ShortText) => !string.IsNullOrWhiteSpace(question.ShortAnswer),
+                    nameof(QuestionType.LanguageFlashcard) => question.Flashcard != null,
                     _ => false
                 })
                 .WithMessage("Một hoặc nhiều câu hỏi có loại hoặc dữ liệu không hợp lệ");
+
+            When(x => x.Type == "LanguageFlashcard" && x.Flashcard != null, () =>
+            {
+                RuleFor(x => x.Flashcard)
+                    .Custom((card, context) =>
+                    {
+                        foreach (var error in FlashcardNormalizer.Validate(card))
+                            context.AddFailure(nameof(Flashcard), error);
+                    });
+            });
 
 
             RuleFor(x => x.QuestionText)
@@ -177,6 +190,7 @@ public class CreateUpdateQuestionDto
                 {
                     Answer = dto.ShortAnswer!
                 }),
+                nameof(QuestionType.LanguageFlashcard) => JsonSerializer.Serialize(FlashcardNormalizer.Normalize(dto.Flashcard!)),
                 _ => throw new InvalidDataException($"Invalid question type: {dto.Type}")
             };
         }
@@ -269,6 +283,10 @@ public class CreateUpdateQuestionDto
                         dto.ShortAnswer = shortAnswer.Answer;
                     }
                     break;
+
+                case QuestionType.LanguageFlashcard:
+                    dto.Flashcard = FlashcardQuizBuilder.Parse(question.DataJson);
+                    break;
             }
 
             return dto;
@@ -279,7 +297,7 @@ public class CreateUpdateQuestionDto
     {
         public static bool CompareQuestion(Question question, CreateUpdateQuestionDto questionDto)
         {
-            var questionResponseDto = QuestionResponseDto.Mapper.FromEntity(question, true, shuffle: false);
+            var questionResponseDto = QuestionResponseDto.Mapper.FromEntity(question, true, shuffle: false, quizView: false);
 
             if (!question.QuestionText!.Trim().ToLower().Equals(questionDto.QuestionText!.Trim().ToLower()))
                 return false;
@@ -306,6 +324,13 @@ public class CreateUpdateQuestionDto
                     CompareOrderingQuestion(questionResponseDto.QuestionData.Ordering, questionDto.OrderingItems!),
                 nameof(QuestionType.ShortText) =>
                     string.Equals(questionResponseDto.QuestionData.ShortText?.Trim(), questionDto.ShortAnswer?.Trim(),
+                        StringComparison.OrdinalIgnoreCase),
+                // Thẻ: cùng mặt trước (đã so ở trên) và cùng nghĩa chính coi là trùng
+                nameof(QuestionType.LanguageFlashcard) =>
+                    questionDto.Flashcard != null
+                    && string.Equals(
+                        questionResponseDto.QuestionData.Flashcard is { } existing ? FlashcardQuizBuilder.AnswerText(existing) : null,
+                        FlashcardQuizBuilder.AnswerText(questionDto.Flashcard),
                         StringComparison.OrdinalIgnoreCase),
                 _ => false
             };

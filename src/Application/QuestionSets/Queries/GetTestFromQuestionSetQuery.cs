@@ -31,8 +31,8 @@ public class GetTestFromQuestionSetQueryValidator : AbstractValidator<GetTestFro
             .NotEmpty().WithMessage("QuestionTypes không được bỏ trống")
             .Must(x => x.Count > 0).WithMessage("Số lượng type lớn hơn 0")
             .ForEach(type =>
-                type.Must(x => new[] {"MultipleChoice", "Matching", "Ordering", "ShortText"}.Contains(x))
-                    .WithMessage($"Loại câu hỏi phải là MultipleChoice, Matching, Ordering, ShortText"));
+                type.Must(x => new[] {"MultipleChoice", "Matching", "Ordering", "ShortText", "LanguageFlashcard"}.Contains(x))
+                    .WithMessage($"Loại câu hỏi phải là MultipleChoice, Matching, Ordering, ShortText, LanguageFlashcard"));
     }
 }
 
@@ -110,7 +110,11 @@ public class GetTestFromQuestionSetQueryHandler : IRequestHandler<GetTestFromQue
             pool.Remove(question);
         }
 
+        var flashcardPool = questionSet.Questions
+            .Where(q => !q.IsDeleted && q.Type == QuestionType.LanguageFlashcard)
+            .ToList();
+
         return questions.Select(x =>
-            QuestionResponseDto.Mapper.FromEntity(x, true)).ToList();
+            QuestionResponseDto.Mapper.FromEntity(x, true, flashcardPool: flashcardPool)).ToList();
     }
 }
