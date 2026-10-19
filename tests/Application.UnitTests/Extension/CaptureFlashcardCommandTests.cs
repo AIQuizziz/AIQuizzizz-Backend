@@ -323,11 +323,11 @@ public class CaptureFlashcardCommandTests
 
     // ---- hoàn tác ----
 
-    private UndoCaptureFlashcardCommandHandler UndoHandler(DateTimeOffset? now = null)
+    private UndoCaptureFlashcardCommandHandler UndoHandler()
     {
         var user = new Mock<IUser>();
         user.SetupGet(x => x.UserId).Returns(_userId);
-        return new UndoCaptureFlashcardCommandHandler(_db, user.Object, _sets.Object, new FixedTime(now ?? Now));
+        return new UndoCaptureFlashcardCommandHandler(_db, user.Object, _sets.Object);
     }
 
     [Test]
@@ -349,22 +349,23 @@ public class CaptureFlashcardCommandTests
     }
 
     [Test]
-    public async Task Undo_IsRejected_AfterTheUndoWindow_OrWithoutEditPermission()
+    public async Task Delete_WorksForOldCards_ButIsRejectedWithoutEditPermission()
     {
         Settings(ExtensionTargetMode.Daily);
         await _db.SaveChangesAsync();
         var a = await Handler().Handle(Cmd(), default);
-        foreach (var q in _db.Questions) q.Created = Now;
+        foreach (var q in _db.Questions) q.Created = Now.AddYears(-1); // thẻ cũ: vẫn xoá được từ Side Panel
         await _db.SaveChangesAsync();
-
-        var late = () => UndoHandler(Now.AddMinutes(11)).Handle(new UndoCaptureFlashcardCommand { QuestionId = a.QuestionId }, default);
-        await late.Should().ThrowAsync<ErrorCodeException>();
 
         _sets.Setup(s => s.CanUserEditQuestionSet(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(false);
         var forbidden = () => UndoHandler().Handle(new UndoCaptureFlashcardCommand { QuestionId = a.QuestionId }, default);
         await forbidden.Should().ThrowAsync<ErrorCodeException>();
 
         (await _db.Questions.SingleAsync()).IsDeleted.Should().BeFalse();
+
+        _sets.Setup(s => s.CanUserEditQuestionSet(It.IsAny<Guid>(), It.IsAny<Guid>())).ReturnsAsync(true);
+        await UndoHandler().Handle(new UndoCaptureFlashcardCommand { QuestionId = a.QuestionId }, default);
+        (await _db.Questions.SingleAsync()).IsDeleted.Should().BeTrue();
     }
 
     [Test]

@@ -21,7 +21,7 @@ public class ExtensionEndpoints : EndpointGroupBase
         group.MapDelete(UndoCaptureFlashcard, "Flashcards/{questionId}");
     }
 
-    /// <summary>Hoàn tác thẻ vừa thêm (trong vài phút đầu)</summary>
+    /// <summary>Xoá một thẻ (hoàn tác / xoá từ Side Panel); cần quyền sửa bộ chứa thẻ</summary>
     public async Task<Ok<ApiResponse>> UndoCaptureFlashcard(Guid questionId, ISender sender)
     {
         await sender.Send(new UndoCaptureFlashcardCommand { QuestionId = questionId });
