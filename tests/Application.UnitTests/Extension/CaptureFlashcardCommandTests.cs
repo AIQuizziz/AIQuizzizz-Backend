@@ -190,6 +190,19 @@ public class CaptureFlashcardCommandTests
     }
 
     [Test]
+    public async Task UntranslatableWord_EchoedBackByTranslator_IsNotStoredAsATranslation()
+    {
+        Settings(ExtensionTargetMode.Daily, translate: true);
+        await _db.SaveChangesAsync();
+        _translator.Setup(t => t.TranslateAsync("asdfqwerzx", "en", "vi", It.IsAny<CancellationToken>())).ReturnsAsync("asdfqwerzx");
+
+        var result = await Handler().Handle(Cmd("asdfqwerzx"), default);
+
+        result.Translated.Should().BeFalse();
+        result.Preview.Should().BeNull();
+    }
+
+    [Test]
     public async Task WordNotInDictionary_StillCreatesCard_WithTranslationOnly()
     {
         Settings(ExtensionTargetMode.Daily, translate: true);

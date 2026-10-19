@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CleanArchitectureBase.Application.Questions.Dtos;
+using CleanArchitectureBase.Application.Questions.Utils;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
 using CleanArchitectureBase.Domain.Entities;
 
@@ -126,6 +127,15 @@ public class LanguageFlashcardTests
     {
         var draft = Q("draft", new QTypeLanguageFlashcard());
         Quiz(draft, Deck()).QuestionData.MultipleChoice.Should().BeEmpty();
+    }
+
+    [Test]
+    public void IsPlayable_FalseForDraftCards_TrueForCardsWithAMeaning_AndOtherTypes()
+    {
+        FlashcardQuizBuilder.IsPlayable(Q("draft", new QTypeLanguageFlashcard())).Should().BeFalse();
+        FlashcardQuizBuilder.IsPlayable(Q("ok", Card("a meaning"))).Should().BeTrue();
+        FlashcardQuizBuilder.IsPlayable(Q("ok", Card("", translation: "nghĩa"))).Should().BeTrue();
+        FlashcardQuizBuilder.IsPlayable(new Question { QuestionText = "q", Type = QuestionType.ShortText }).Should().BeTrue();
     }
 
     // ---- validator / serializer ----

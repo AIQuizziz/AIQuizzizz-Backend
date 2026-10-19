@@ -4,6 +4,7 @@ using CleanArchitectureBase.Application.Common.Security;
 using CleanArchitectureBase.Application.Plans.Service;
 using CleanArchitectureBase.Application.Questions.Dtos;
 using CleanArchitectureBase.Application.Questions.Services;
+using CleanArchitectureBase.Application.Questions.Utils;
 using CleanArchitectureBase.Application.QuestionSets.Services;
 using CleanArchitectureBase.Domain.Constants;
 using CleanArchitectureBase.Domain.Entities;
@@ -79,7 +80,7 @@ public class GetTestFromQuestionSetQueryHandler : IRequestHandler<GetTestFromQue
         var typeToQuestions = selectedTypes.ToDictionary(
             type => type,
             type => questionSet.Questions
-                .Where(q => !q.IsDeleted && q.Type.ToString() == type)
+                .Where(q => !q.IsDeleted && q.Type.ToString() == type && FlashcardQuizBuilder.IsPlayable(q))
                 .ToList());
 
         var random = new Random();

@@ -206,7 +206,9 @@ public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCo
         {
             // Bản dịch của chính từ, đặt vào nghĩa đầu tiên (đáp án trắc nghiệm ưu tiên bản dịch). Từ điển không có thì chỉ có bản dịch.
             var text = await _translator.TranslateAsync(front, sourceLang, targetLang, ct);
-            if (!string.IsNullOrWhiteSpace(text))
+            // MyMemory trả lại đúng chuỗi gốc khi không dịch được; từ cũng không có trong từ điển thì coi như không dịch được
+            var unchanged = string.Equals(text?.Trim(), front, StringComparison.OrdinalIgnoreCase) && card.Back.Meanings.Count == 0;
+            if (!string.IsNullOrWhiteSpace(text) && !unchanged)
             {
                 if (card.Back.Meanings.Count == 0) card.Back.Meanings.Add(new QFlashcardMeaning());
                 card.Back.Meanings[0].Translation = text;

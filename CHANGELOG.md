@@ -12,7 +12,8 @@
 - Bảng `ExtensionSettings` (migration `AddExtensionSettings`): bộ đích Fixed/Daily/Weekly/Monthly, bật/tắt dịch + cặp ngôn ngữ, lưu ngữ cảnh, múi giờ. Bộ theo kỳ tự tạo (Private) tên `Flashcards 2026-10-19` / `Flashcards 2026-W43` / `Flashcards 2026-10` theo múi giờ người dùng; cùng từ (không phân biệt hoa thường) trong cùng bộ không tạo thêm thẻ; tối đa 500 câu/bộ.
 - Tra nghĩa phía server: Free Dictionary API (timeout 4s, cache 24h) + dịch MyMemory (timeout 5s, cache 24h), host cố định. **Tắt dịch = không tra gì, thẻ tạo với phần nghĩa trống** (đúng spec). Lỗi dịch vụ ngoài không chặn việc lưu thẻ: `lookup.status` = `found` | `not_found` | `error` | `skipped`.
 - Giới hạn đã biết: tạo thẻ đồng thời cùng một từ trong cùng bộ có thể lọt qua kiểm tra trùng (kiểm tra rồi mới ghi, không có ràng buộc DB); Free Dictionary API treo với một số từ (đã gặp với "documentation", "candid"); chưa có hạn mức theo gói cho thẻ.
-- Unit test: `LanguageFlashcardTests`, `CaptureFlashcardCommandTests` (tổng 133).
+- Thẻ nháp (chưa có nghĩa) bị loại khỏi Learn / luyện tập; bản dịch trùng đúng từ gốc (MyMemory trả lại khi không dịch được) mà từ điển cũng không có thì không lưu.
+- Unit test: `LanguageFlashcardTests`, `CaptureFlashcardCommandTests` (tổng 135).
 
 ## [Unreleased] — 2026-10-02
 

@@ -41,6 +41,14 @@ public static class FlashcardQuizBuilder
         return null;
     }
 
+    /// <summary>Câu hỏi có thể đưa vào học/luyện tập? Thẻ nháp chưa có nghĩa thì không (không dựng được đáp án).</summary>
+    public static bool IsPlayable(Question question)
+    {
+        if (question.Type != QuestionType.LanguageFlashcard) return true;
+        var card = Parse(question.DataJson);
+        return card != null && AnswerText(card) != null;
+    }
+
     private static string? PrimaryPos(QTypeLanguageFlashcard card) =>
         card.Back.Meanings.FirstOrDefault(m => !string.IsNullOrWhiteSpace(m.Pos))?.Pos?.Trim().ToLowerInvariant();
 
