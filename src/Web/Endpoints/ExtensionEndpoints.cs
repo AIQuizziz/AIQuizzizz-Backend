@@ -17,9 +17,17 @@ public class ExtensionEndpoints : EndpointGroupBase
         group.MapGet(GetExtensionSettings, "Settings");
         group.MapPut(UpdateExtensionSettings, "Settings");
         group.MapGet(GetWritableQuestionSets, "QuestionSets");
+        group.MapGet(GetRecentFlashcards, "Flashcards/Recent");
         group.MapPost(CaptureFlashcard, "Flashcards");
         group.MapPost(TranslateText, "Translate");
         group.MapDelete(UndoCaptureFlashcard, "Flashcards/{questionId}");
+    }
+
+    /// <summary>Các thẻ flashcard thêm gần đây (mới nhất trước) của người dùng</summary>
+    public async Task<Ok<ApiResponse<List<RecentFlashcardDto>>>> GetRecentFlashcards([AsParameters] GetRecentFlashcardsQuery query, ISender sender)
+    {
+        var result = await sender.Send(query);
+        return result.ToOk();
     }
 
     /// <summary>Dịch văn bản vừa bôi đen: một từ -> từ điển + dịch từ; câu -> LibreTranslate</summary>
