@@ -18,8 +18,8 @@ public class ExtensionSetting : BaseAuditableEntity
     public ExtensionTargetMode TargetMode { get; set; } = ExtensionTargetMode.Daily;
     /// <summary>Bộ câu hỏi đích khi TargetMode = Fixed</summary>
     public Guid? TargetQuestionSetId { get; set; }
-    /// <summary>Bật dịch: false thì chỉ lưu định nghĩa gốc (hoặc để trống nếu tra không ra)</summary>
-    public bool TranslateEnabled { get; set; }
+    /// <summary>Tự động tra nghĩa/dịch (Free Dictionary + dịch sang ngôn ngữ đích). Tắt: thẻ được tạo với phần nghĩa để trống.</summary>
+    public bool TranslateEnabled { get; set; } = true;
     public string SourceLang { get; set; } = "en";
     public string TargetLang { get; set; } = "vi";
     /// <summary>Lưu câu chứa từ được bôi đen (ngữ cảnh) vào thẻ</summary>

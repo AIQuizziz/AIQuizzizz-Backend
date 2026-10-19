@@ -9,7 +9,7 @@ public class ExtensionSettingsDto
     public string TargetMode { get; set; } = nameof(ExtensionTargetMode.Daily);
     public Guid? TargetQuestionSetId { get; set; }
     public string? TargetQuestionSetName { get; set; }
-    public bool TranslateEnabled { get; set; }
+    public bool TranslateEnabled { get; set; } = true;
     public string SourceLang { get; set; } = "en";
     public string TargetLang { get; set; } = "vi";
     public bool StoreContext { get; set; } = true;

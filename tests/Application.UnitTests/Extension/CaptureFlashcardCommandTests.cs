@@ -57,7 +57,7 @@ public class CaptureFlashcardCommandTests
         return new CaptureFlashcardCommandHandler(_db, user.Object, _sets.Object, _dictionary.Object, _translator.Object, new FixedTime(Now));
     }
 
-    private void Settings(ExtensionTargetMode mode, bool translate = false, Guid? fixedSet = null, string tz = "UTC", bool storeContext = true) =>
+    private void Settings(ExtensionTargetMode mode, bool translate = true, Guid? fixedSet = null, string tz = "UTC", bool storeContext = true) =>
         _db.ExtensionSettings.Add(new ExtensionSetting
         {
             UserId = _userId, TargetMode = mode, TranslateEnabled = translate, TargetQuestionSetId = fixedSet,
@@ -142,7 +142,7 @@ public class CaptureFlashcardCommandTests
     }
 
     [Test]
-    public async Task TranslationOff_DoesNotCallTranslator()
+    public async Task TranslationOff_SkipsAllLookups_AndLeavesTheBackEmpty()
     {
         Settings(ExtensionTargetMode.Daily, translate: false);
         await _db.SaveChangesAsync();
@@ -150,6 +150,25 @@ public class CaptureFlashcardCommandTests
         var result = await Handler().Handle(Cmd(), default);
 
         result.Translated.Should().BeFalse();
+        result.LookupStatus.Should().Be("skipped");
+        result.Preview.Should().BeNull();
+        var card = JsonSerializer.Deserialize<QTypeLanguageFlashcard>((await _db.Questions.SingleAsync()).DataJson!)!;
+        card.Back.Meanings.Should().BeEmpty();
+        _dictionary.Verify(d => d.LookupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _translator.Verify(t => t.TranslateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task SameSourceAndTargetLanguage_UsesDictionaryOnly_WithoutTranslating()
+    {
+        Settings(ExtensionTargetMode.Daily, translate: true);
+        await _db.SaveChangesAsync();
+
+        var result = await Handler().Handle(new CaptureFlashcardCommand { Front = "serendipity", TargetLang = "en" }, default);
+
+        result.LookupStatus.Should().Be("found");
+        result.Translated.Should().BeFalse();
+        result.Preview.Should().Be("finding good things by chance");
         _translator.Verify(t => t.TranslateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -200,7 +219,7 @@ public class CaptureFlashcardCommandTests
     [Test]
     public async Task DictionaryServiceError_IsRecordedAsError_NotAsNotFound_AndCardIsStillSaved()
     {
-        Settings(ExtensionTargetMode.Daily, translate: false);
+        Settings(ExtensionTargetMode.Daily, translate: true);
         await _db.SaveChangesAsync();
         _dictionary.Setup(d => d.LookupAsync("candid", "en", It.IsAny<CancellationToken>())).ReturnsAsync(DictionaryLookupResult.Error);
 
@@ -271,7 +290,7 @@ public class CaptureFlashcardCommandTests
     }
 
     [Test]
-    public async Task NoSettingsRow_UsesDefaults_DailyEnglishNoTranslation()
+    public async Task NoSettingsRow_UsesDefaults_DailyEnglishToVietnamese()
     {
         var result = await Handler().Handle(Cmd(), default);
 

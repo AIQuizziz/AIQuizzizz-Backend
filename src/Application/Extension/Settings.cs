@@ -68,9 +68,6 @@ public class UpdateExtensionSettingsCommandValidator : AbstractValidator<UpdateE
 
         RuleFor(x => x.SourceLang).Must(ExtensionValidation.IsLang).WithMessage("Mã ngôn ngữ nguồn không hợp lệ (vd. en)");
         RuleFor(x => x.TargetLang).Must(ExtensionValidation.IsLang).When(x => x.TranslateEnabled).WithMessage("Mã ngôn ngữ đích không hợp lệ (vd. vi)");
-        RuleFor(x => x)
-            .Must(x => !x.TranslateEnabled || !string.Equals(x.SourceLang, x.TargetLang, StringComparison.OrdinalIgnoreCase))
-            .WithMessage("Ngôn ngữ đích phải khác ngôn ngữ nguồn");
         RuleFor(x => x.TimeZone).Must(ExtensionValidation.IsTimeZoneId).WithMessage("Múi giờ không hợp lệ (vd. Asia/Ho_Chi_Minh)");
     }
 }

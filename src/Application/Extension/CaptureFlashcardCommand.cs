@@ -182,6 +182,14 @@ public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCo
         string front, string sourceLang, string targetLang, bool translate, CancellationToken ct)
     {
         var card = new QTypeLanguageFlashcard();
+
+        // Tắt tự động dịch/tra: để trống phần nghĩa (người dùng tự điền sau), không gọi dịch vụ ngoài
+        if (!translate)
+        {
+            card.Lookup = new QFlashcardLookup { Provider = Provider, Status = "skipped" };
+            return (card, false);
+        }
+
         var lookup = await _dictionary.LookupAsync(front, sourceLang, ct);
         var entry = lookup.Entry;
         if (entry != null)
@@ -193,7 +201,8 @@ public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCo
         card.Lookup = new QFlashcardLookup { Provider = Provider, Status = lookup.Status };
 
         var translated = false;
-        if (translate)
+        // Cùng ngôn ngữ nguồn và đích: chỉ cần định nghĩa từ điển, không dịch
+        if (!string.Equals(sourceLang, targetLang, StringComparison.OrdinalIgnoreCase))
         {
             // Bản dịch của chính từ, đặt vào nghĩa đầu tiên (đáp án trắc nghiệm ưu tiên bản dịch). Từ điển không có thì chỉ có bản dịch.
             var text = await _translator.TranslateAsync(front, sourceLang, targetLang, ct);
