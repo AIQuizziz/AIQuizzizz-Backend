@@ -25,6 +25,8 @@ public partial class FreeDictionaryService : IDictionaryLookupService
         _logger = logger;
     }
 
+    public string Provider => "dictionaryapi.dev";
+
     [GeneratedRegex("^[a-z]{2,3}(-[A-Za-z]{2,4})?$")]
     private static partial Regex LangPattern();
 

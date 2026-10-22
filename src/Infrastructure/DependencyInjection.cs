@@ -202,8 +202,25 @@ public static class DependencyInjection
         services.AddScoped<IModerationScheduler, HangfireModerationScheduler>();
 
         // Thẻ ghi nhớ từ extension: tra từ điển + dịch (host cố định, có cache)
-        services.AddHttpClient<IDictionaryLookupService, CleanArchitectureBase.Infrastructure.Flashcards.FreeDictionaryService>(c => c.Timeout = TimeSpan.FromSeconds(4));
-        services.AddHttpClient<ITranslationService, CleanArchitectureBase.Infrastructure.Flashcards.MyMemoryTranslationService>(c => c.Timeout = TimeSpan.FromSeconds(5));
+        // Tra từ + dịch từ: WiktAPI tự host khi có Wiktapi__BaseUrl, không thì Free Dictionary API + MyMemory (dịch vụ ngoài)
+        services.Configure<CleanArchitectureBase.Infrastructure.Flashcards.WiktapiSettings>(configuration.GetSection("Wiktapi"));
+        var wiktapiUrl = configuration["Wiktapi:BaseUrl"];
+        if (!string.IsNullOrWhiteSpace(wiktapiUrl))
+        {
+            services.AddHttpClient<CleanArchitectureBase.Infrastructure.Flashcards.WiktapiService>(c =>
+            {
+                c.BaseAddress = new Uri(wiktapiUrl.TrimEnd('/') + "/");
+                c.Timeout = TimeSpan.FromSeconds(4);
+            });
+            services.AddTransient<IDictionaryLookupService>(sp => sp.GetRequiredService<CleanArchitectureBase.Infrastructure.Flashcards.WiktapiService>());
+            // dịch từ: bảng dịch Wiktionary, không có thì LibreTranslate (cũng tự host)
+            services.AddTransient<ITranslationService, CleanArchitectureBase.Infrastructure.Flashcards.WordTranslationService>();
+        }
+        else
+        {
+            services.AddHttpClient<IDictionaryLookupService, CleanArchitectureBase.Infrastructure.Flashcards.FreeDictionaryService>(c => c.Timeout = TimeSpan.FromSeconds(4));
+            services.AddHttpClient<ITranslationService, CleanArchitectureBase.Infrastructure.Flashcards.MyMemoryTranslationService>(c => c.Timeout = TimeSpan.FromSeconds(5));
+        }
         services.AddHttpClient<ISentenceTranslationService, CleanArchitectureBase.Infrastructure.Flashcards.LibreTranslateService>(c => c.Timeout = TimeSpan.FromSeconds(15));
         services.AddScoped<IModerationService, ModerationService>();
 

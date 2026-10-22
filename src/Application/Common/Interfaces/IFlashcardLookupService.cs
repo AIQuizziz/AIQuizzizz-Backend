@@ -20,9 +20,12 @@ public class DictionaryLookupResult
     public static readonly DictionaryLookupResult Error = new() { Status = "error" };
 }
 
-/// <summary>Tra từ điển (hiện dùng Free Dictionary API).</summary>
+/// <summary>Tra từ điển (WiktAPI tự host khi có cấu hình, không thì Free Dictionary API).</summary>
 public interface IDictionaryLookupService
 {
+    /// <summary>Tên nguồn tra từ, lưu vào thẻ (Lookup.Provider)</summary>
+    string Provider { get; }
+
     Task<DictionaryLookupResult> LookupAsync(string word, string lang, CancellationToken cancellationToken = default);
 }
 
