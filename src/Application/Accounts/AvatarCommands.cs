@@ -21,7 +21,7 @@ public class AvatarDto
 
 /// <summary>
 /// Đổi ảnh đại diện. Client nên cắt vuông + thu nhỏ trước khi gửi; server chuẩn hoá thành JPEG (media-ai).
-/// Ảnh được kiểm duyệt NGAY (khoả thân / bạo lực) trước khi gán: vi phạm -> từ chối + tính 1 vi phạm
+/// Ảnh được kiểm duyệt NGAY (khoả thân / khiêu dâm / bạo lực) trước khi gán: vi phạm -> từ chối + tính 1 vi phạm
 /// (đủ số vi phạm sẽ tự động khoá tài khoản như ảnh câu hỏi). Không phụ thuộc gói.
 /// </summary>
 [Authorize]
@@ -94,7 +94,7 @@ public class UploadAvatarCommandHandler : IRequestHandler<UploadAvatarCommand, A
         var outcome = await _moderationService.ModerateAvatarAsync(mediaId);
         if (outcome == AvatarModerationOutcome.Violated)
             throw new ErrorCodeException(ErrorCodes.AVATAR_VIOLATED,
-                "Ảnh đại diện vi phạm tiêu chuẩn cộng đồng (khoả thân / bạo lực) nên đã bị từ chối và tính 1 vi phạm");
+                "Ảnh đại diện vi phạm tiêu chuẩn cộng đồng (khoả thân / khiêu dâm / bạo lực) nên đã bị từ chối và tính 1 vi phạm");
         if (outcome != AvatarModerationOutcome.Approved)
             throw new ErrorCodeException(ErrorCodes.AVATAR_MODERATION_FAILED, "Chưa kiểm duyệt được ảnh, vui lòng thử lại sau");
 

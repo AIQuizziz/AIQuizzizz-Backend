@@ -98,6 +98,21 @@ public class AvatarTests : BaseTestFixture
     }
 
     [Test]
+    public async Task ShouldRejectDrawnNsfwImageWithReadableReason()
+    {
+        var userId = await RunAsDefaultUserAsync();
+
+        await FluentActions.Invoking(() => SendAsync(Upload("nsfw-hentai.jpg", "image/jpeg")))
+            .Should().ThrowAsync<ErrorCodeException>()
+            .Where(e => e.Errors.ContainsKey(ErrorCodes.AVATAR_VIOLATED));
+
+        (await GetUserAsync(userId)).AvatarMediaId.Should().BeNull();
+        var strike = (await QueryListAsync<UserViolation>(q => q.Where(v => v.UserId == userId))).Single();
+        strike.Reason.Should().Be("Ảnh đại diện vi phạm tiêu chuẩn cộng đồng (khiêu dâm)");
+        strike.DetailJson.Should().Contain("\"Nsfw\"").And.Contain("0.99");
+    }
+
+    [Test]
     public async Task ShouldBanAfterEnoughViolations()
     {
         var userId = await RunAsDefaultUserAsync();

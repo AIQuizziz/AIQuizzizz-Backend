@@ -4,6 +4,10 @@
 
 ## [Unreleased] — 2026-10-19
 
+### Changed — Kiểm duyệt ảnh bắt cả ảnh 18+ dạng tranh vẽ / anime
+- media-ai 1.1.0 chạy thêm model phân loại cả ảnh (Falconsai/nsfw_image_detection, ngưỡng `NSFW_THRESHOLD` 0.85) cạnh NudeNet: một ảnh đại diện hentai được NudeNet chấm 0.515 (dưới ngưỡng 0.6) nên đã lọt; model mới chấm 0.99. `ModerationResult.Nsfw` (`label`, `score`) được lưu trong `ModerationResultJson` / `UserViolation.DetailJson`; lý do `nsfw` hiển thị là "khiêu dâm" trong vi phạm, email cảnh báo, lý do khoá tự động (vi / en).
+- Functional test: ảnh vẽ 18+ bị từ chối, vi phạm ghi "(khiêu dâm)" kèm điểm.
+
 ### Fixed — Ảnh / video không tải được khi vào bằng tên miền (https://thanhkhac.id.vn)
 - Presigned URL luôn ký theo `PublicS3Endpoint` (`http://100.86.165.118:8090`). Vào bằng tên miền HTTPS (Caddy -> nginx) thì trình duyệt tự nâng link ảnh thành `https://100.86.165.118:8090/...` -> `ERR_SSL_PROTOCOL_ERROR`; dùng đúng tên miền thì MinIO báo `SignatureDoesNotMatch` vì Caddy giữ Host `thanhkhac.id.vn` (SigV4 ký cả Host). Ảnh câu hỏi, video, ảnh đại diện đều hỏng.
 - Nay URL ký theo địa chỉ trình duyệt đang dùng: middleware chọn trong danh sách `PublicS3Endpoint` + **`Media:PublicOrigins`** (mới, cách nhau bởi dấu phẩy) theo tên host của request (`MediaRequestOrigin`, `MediaPublicOrigins`); scheme / cổng lấy từ cấu hình nên Host giả mạo không tạo được URL ngoài danh sách; không khớp -> `PublicS3Endpoint` như cũ. Docker: `Media__PublicOrigins: ${PUBLIC_ORIGINS:-}`. Unit test `MediaPublicOriginsTests`.
