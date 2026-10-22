@@ -30,6 +30,14 @@ public class ModerationResult
     public List<string> Reasons { get; set; } = new();
     public ModerationNudity? Nudity { get; set; }
     public ModerationViolence? Violence { get; set; }
+    /// <summary>Phân loại cả ảnh (media-ai >= 1.1: Falconsai), bắt ảnh 18+ dạng tranh vẽ / anime mà NudeNet chấm thấp</summary>
+    public ModerationNsfw? Nsfw { get; set; }
+}
+
+public class ModerationNsfw
+{
+    public string? Label { get; set; }
+    public double Score { get; set; }
 }
 
 public class ModerationNudity

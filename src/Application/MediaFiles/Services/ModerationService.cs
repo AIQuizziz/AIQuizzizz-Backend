@@ -310,8 +310,8 @@ public class ModerationService : IModerationService
         // Lưu mã ổn định để giao diện tự dịch (vi/en): AUTO_BAN_STRIKES:{số vi phạm}:{số ngày}
         var reason = $"AUTO_BAN_STRIKES:{activeCount}:{_settings.StrikeExpiryDays}";
         var readableReason = $"Tài khoản bị khóa tự động do có {activeCount} vi phạm tiêu chuẩn cộng đồng " +
-                             $"(ảnh khỏa thân/bạo lực) trong vòng {_settings.StrikeExpiryDays} ngày. " +
-                             $"/ Your account was automatically banned for {activeCount} community-guideline violations (nudity/violence) within {_settings.StrikeExpiryDays} days.";
+                             $"(ảnh khỏa thân/khiêu dâm/bạo lực) trong vòng {_settings.StrikeExpiryDays} ngày. " +
+                             $"/ Your account was automatically banned for {activeCount} community-guideline violations (nudity/sexual content/violence) within {_settings.StrikeExpiryDays} days.";
         user.IsBanned = true;
         user.BanReason = reason;
         user.BannedAt = DateTimeOffset.UtcNow;
@@ -354,6 +354,7 @@ public class ModerationService : IModerationService
         var mapped = reasons.Select(r => r switch
         {
             "nudity" => "khỏa thân",
+            "nsfw" => "khiêu dâm",
             "violence" => "bạo lực",
             "test" => "kiểm thử",
             _ => r

@@ -5,7 +5,7 @@ namespace CleanArchitectureBase.Application.Command.UnitTests.Fakes;
 
 /// <summary>
 /// media-ai giả cho functional test (không cần MinIO / model AI). Kết quả kiểm duyệt theo tên file gốc:
-/// "violate*" -> vi phạm (nudity), "error*" -> service lỗi, còn lại -> hợp lệ.
+/// "violate*" -> vi phạm (nudity), "nsfw*" -> vi phạm (nsfw, tranh vẽ 18+), "error*" -> service lỗi, còn lại -> hợp lệ.
 /// </summary>
 public class FakeMediaAiClient : IMediaAiClient
 {
@@ -33,6 +33,13 @@ public class FakeMediaAiClient : IMediaAiClient
         var fileName = _fileNameByKey.GetValueOrDefault(objectKey, string.Empty);
         if (fileName.StartsWith("error", StringComparison.OrdinalIgnoreCase))
             throw new HttpRequestException("media-ai unavailable");
+        if (fileName.StartsWith("nsfw", StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult(new ModerationResult
+            {
+                Violated = true,
+                Reasons = ["nsfw"],
+                Nsfw = new ModerationNsfw { Label = "nsfw", Score = 0.99 }
+            });
         var violated = fileName.StartsWith("violate", StringComparison.OrdinalIgnoreCase);
         return Task.FromResult(new ModerationResult
         {
