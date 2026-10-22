@@ -722,6 +722,7 @@ public class IdentityService : IIdentityService
             Id = x.user.Id,
             Email = x.user.Email!,
             FullName = x.domain.FullName,
+            AvatarId = x.domain.AvatarMediaId,
             IsBanned = x.domain.IsBanned,
             Token = x.domain.TokenCount,
             Role = x.RoleName ?? "User",

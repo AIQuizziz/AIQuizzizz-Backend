@@ -1,4 +1,5 @@
 ﻿using System.Data.Common;
+using CleanArchitectureBase.Application.Command.UnitTests.Fakes;
 using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Infrastructure.Data;
 using Hangfire;
@@ -43,7 +44,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                     options.UseNpgsql(_connection);
                 });
 
-            services.RemoveAll<IHostedService>(); 
+            // media-ai / MinIO / SMTP giả: test không gọi ra ngoài
+            services
+                .RemoveAll<IMediaAiClient>()
+                .AddSingleton<IMediaAiClient, FakeMediaAiClient>();
+            services
+                .RemoveAll<IMediaUrlSigner>()
+                .AddSingleton<IMediaUrlSigner, FakeMediaUrlSigner>();
+            services
+                .RemoveAll<IEmailService>()
+                .AddTransient(_ => Mock.Of<IEmailService>());
+
+            services.RemoveAll<IHostedService>();
             services.AddHangfire(configuration => configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                 .UseSimpleAssemblyNameTypeSerializer()

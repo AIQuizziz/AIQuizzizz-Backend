@@ -10,6 +10,8 @@ public class UserProfileDto
     public Guid? Id { get; set; }
     public string? Email { get; set; }
     public string? FullName { get; set; }
+    /// <summary>Ảnh đại diện: GET /api/Account/Avatar/{AvatarId}; null = ảnh mặc định</summary>
+    public Guid? AvatarId { get; set; }
     public long TokenCount { get; set; }
     public long Balance { get; set; }
     public List<string> Roles { get; set; } = new();
@@ -48,6 +50,7 @@ public class GetProfileQueryHandler : IRequestHandler<GetProfileQuery, UserProfi
         {
             Email = user.Email,
             FullName = user.FullName,
+            AvatarId = user.AvatarMediaId,
             Id = user.Id,
             TokenCount = user.TokenCount,
             Balance = user.Balance,

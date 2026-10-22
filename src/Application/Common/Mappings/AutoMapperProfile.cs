@@ -17,7 +17,8 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.CreateBy, opt => opt.MapFrom(src => new UserCreateCommentDto
             {
                 UserId = src.CreatedByUser!.Id, 
-                FullName = src.CreatedByUser!.FullName
+                FullName = src.CreatedByUser!.FullName,
+                AvatarId = src.CreatedByUser!.AvatarMediaId
             }));
     }
 }

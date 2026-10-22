@@ -4,6 +4,13 @@
 
 ## [Unreleased] — 2026-10-19
 
+### Added — Ảnh đại diện có kiểm duyệt
+- **`User.AvatarMediaId`** (migration `AddUserAvatar`: cột uuid null, FK tới `Media`, xoá media -> SET NULL). Ảnh lưu như media ảnh câu hỏi (media-ai chuẩn hoá JPEG, MinIO `img/{id}.jpg`).
+- **API** (`AccountEndpoints`): `POST /api/Account/Avatar` (multipart `file`, mọi gói, tối đa `MaxImageSizeMb`), `DELETE /api/Account/Avatar`, `GET /api/Account/Avatar/{id}` (không cần đăng nhập vì thẻ `<img>` không gửi token; 302 tới presigned URL, `Cache-Control: private, max-age=300`; chỉ trả ảnh đang là avatar của tài khoản còn hoạt động, ảnh cũ / tài khoản bị khoá -> `AVATAR_NOT_FOUND`).
+- **Kiểm duyệt ngay lúc upload** (`IModerationService.ModerateAvatarAsync`, không qua hàng đợi): hợp lệ -> gán avatar, ảnh cũ bị đánh dấu xoá + xoá file; vi phạm (khoả thân / bạo lực) -> `AVATAR_VIOLATED`, xoá file, **tính 1 vi phạm** như ảnh câu hỏi (email cảnh báo, đủ `StrikesToBan` thì tự khoá); media-ai lỗi -> `AVATAR_MODERATION_FAILED`, xoá file, không tính vi phạm. Phần ghi vi phạm / khoá / email tách thành hàm dùng chung với luồng ảnh câu hỏi.
+- **`AvatarId`** trong: hồ sơ (`Account/Profile`), người bình luận (`CommentDto.CreateBy`), thành viên lớp (`SearchStudentInClassQuery`), danh sách tài khoản admin (`UserForListDto`).
+- Functional test `Accounts/AvatarTests` (9 ca: hợp lệ, thay ảnh, vi phạm + strike, đủ 3 vi phạm bị khoá, media-ai lỗi, không phải ảnh, xoá, chưa đăng nhập, tài khoản bị khoá). Test dùng `FakeMediaAiClient`, `FakeMediaUrlSigner` và `IEmailService` giả (đăng ký trong `CustomWebApplicationFactory`, không gọi ra ngoài).
+
 ### Fixed — Tra từ WiktAPI: chữ hoa đầu từ, thứ tự nghĩa, ví dụ, bản dịch y nguyên
 - **Chữ hoa / thường**: WiktAPI phân biệt hoa/thường nên "Created" không tìm thấy (chỉ có "created"), "Junior"/"Middle" ra tên thị trấn / vùng đất. Nay chữ thường hoặc hoa chữ đầu tra cả hai dạng, lấy dạng nhiều nghĩa hơn (bằng nhau giữ chữ đã gõ): "Junior" -> "junior", "House" -> "house", "English" giữ nguyên, "london" -> "London"; dạng khác (FOMO, iPhone) thử đúng chữ gốc trước. Phần dịch dùng lại mục từ đã chọn.
 - **Cache theo đúng chữ đã gõ** (trước gộp về chữ thường): kết quả sai của "Junior" từng bị dùng lại cho "junior" trong 24 giờ, "Created" (không tìm thấy) cho "created" trong 10 phút.

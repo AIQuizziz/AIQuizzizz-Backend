@@ -7,6 +7,14 @@ using Microsoft.Extensions.Options;
 
 namespace CleanArchitectureBase.Application.MediaFiles.Services;
 
+/// <summary>Kết quả kiểm duyệt ảnh đại diện (chạy ngay lúc upload)</summary>
+public enum AvatarModerationOutcome
+{
+    Approved,
+    Violated, // đã từ chối: xoá file + ghi 1 vi phạm cho chủ ảnh
+    Failed    // không kiểm duyệt được (service lỗi): đã xoá file, không tính vi phạm
+}
+
 /// <summary>Đưa job kiểm duyệt vào hàng đợi (Hangfire)</summary>
 public interface IModerationScheduler
 {
@@ -22,6 +30,11 @@ public interface IModerationScheduler
 public interface IModerationService
 {
     Task ModerateImageAsync(Guid mediaId);
+    /// <summary>
+    /// Kiểm duyệt ảnh đại diện ngay (không qua hàng đợi, không thử lại). Vi phạm -> xoá file + ghi 1 vi phạm
+    /// (có thể tự động ban). Lỗi -> xoá file, đánh dấu Failed. Chỉ Approved mới được gán làm avatar.
+    /// </summary>
+    Task<AvatarModerationOutcome> ModerateAvatarAsync(Guid mediaId);
     Task SweepPendingAsync();
     Task DailyReviewAsync();
 }
@@ -85,6 +98,53 @@ public class ModerationService : IModerationService
         await HandleViolationAsync(media, result);
     }
 
+    public async Task<AvatarModerationOutcome> ModerateAvatarAsync(Guid mediaId)
+    {
+        var media = await _context.Media
+            .FirstOrDefaultAsync(m => m.Id == mediaId && m.Type == MediaType.Image
+                                                       && m.ModerationStatus == MediaModerationStatus.Pending);
+        if (media == null)
+            return AvatarModerationOutcome.Failed;
+
+        media.ModerationAttempts++;
+        ModerationResult result;
+        try
+        {
+            result = await RunModerationAsync(media);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Avatar moderation failed for media {MediaId}", media.Id);
+            media.ModerationStatus = MediaModerationStatus.Failed;
+            media.IsDeleted = true;
+            await _context.SaveChangesAsync(CancellationToken.None);
+            await DeleteObjectsSafeAsync(media);
+            return AvatarModerationOutcome.Failed;
+        }
+
+        media.ModeratedAt = DateTimeOffset.UtcNow;
+        media.ModerationResultJson = JsonSerializer.Serialize(result);
+
+        if (!result.Violated)
+        {
+            media.ModerationStatus = MediaModerationStatus.Approved;
+            await _context.SaveChangesAsync(CancellationToken.None);
+            return AvatarModerationOutcome.Approved;
+        }
+
+        media.ModerationStatus = MediaModerationStatus.Violated;
+        media.IsDeleted = true;
+        var reasonText = DescribeReasons(result.Reasons);
+        await RecordStrikeAsync(media, $"Ảnh đại diện vi phạm tiêu chuẩn cộng đồng ({reasonText})", 0);
+
+        _logger.LogWarning("Avatar media {MediaId} violated ({Reasons}); owner {OwnerId}", media.Id, reasonText, media.OwnerId);
+
+        await DeleteObjectsSafeAsync(media);
+        await BanOrNotifyAsync(media.OwnerId,
+            $"Ảnh đại diện bạn tải lên bị phát hiện vi phạm ({reasonText}) và đã bị từ chối.");
+        return AvatarModerationOutcome.Violated;
+    }
+
     public async Task SweepPendingAsync()
     {
         // bỏ qua ảnh vừa upload (job enqueue ngay sau upload sẽ xử lý) để tránh chạy trùng
@@ -146,7 +206,6 @@ public class ModerationService : IModerationService
 
     private async Task HandleViolationAsync(Media media, ModerationResult result)
     {
-        var now = DateTimeOffset.UtcNow;
         media.ModerationStatus = MediaModerationStatus.Violated;
         media.IsDeleted = true;
 
@@ -183,35 +242,52 @@ public class ModerationService : IModerationService
         }
 
         var reasonText = DescribeReasons(result.Reasons);
-        _context.UserViolations.Add(new UserViolation
-        {
-            UserId = media.OwnerId,
-            MediaId = media.Id,
-            Reason = $"Ảnh vi phạm tiêu chuẩn cộng đồng ({reasonText})",
-            DetailJson = media.ModerationResultJson,
-            DeletedQuestionCount = questions.Count,
-            CreatedAt = now,
-            ExpiresAt = now.AddDays(_settings.StrikeExpiryDays)
-        });
-
-        await _context.SaveChangesAsync(CancellationToken.None);
+        await RecordStrikeAsync(media, $"Ảnh vi phạm tiêu chuẩn cộng đồng ({reasonText})", questions.Count);
 
         _logger.LogWarning("Media {MediaId} violated ({Reasons}); {Count} questions removed; owner {OwnerId}",
             media.Id, reasonText, questions.Count, media.OwnerId);
 
+        await DeleteObjectsSafeAsync(media);
+        await BanOrNotifyAsync(media.OwnerId,
+            $"Một ảnh bạn tải lên bị phát hiện vi phạm ({reasonText}). {questions.Count} câu hỏi dùng ảnh này đã bị xóa.");
+    }
+
+    /// <summary>Ghi 1 vi phạm cho chủ ảnh và lưu mọi thay đổi đang chờ</summary>
+    private async Task RecordStrikeAsync(Media media, string reason, int deletedQuestionCount)
+    {
+        var now = DateTimeOffset.UtcNow;
+        _context.UserViolations.Add(new UserViolation
+        {
+            UserId = media.OwnerId,
+            MediaId = media.Id,
+            Reason = reason,
+            DetailJson = media.ModerationResultJson,
+            DeletedQuestionCount = deletedQuestionCount,
+            CreatedAt = now,
+            ExpiresAt = now.AddDays(_settings.StrikeExpiryDays)
+        });
+        await _context.SaveChangesAsync(CancellationToken.None);
+    }
+
+    private async Task DeleteObjectsSafeAsync(Media media)
+    {
         try
         {
             await _mediaAiClient.DeleteAsync(new[] { media.ObjectKey, media.ThumbnailKey }.Where(k => k != null)!, CancellationToken.None);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not delete objects of violated media {MediaId}", media.Id);
+            _logger.LogError(ex, "Could not delete objects of media {MediaId}", media.Id);
         }
+    }
 
-        var activeCount = await CountActiveStrikesAsync(media.OwnerId);
-        var banned = await BanIfNeededAsync(media.OwnerId);
+    /// <summary>Đủ số vi phạm -> ban (kèm email); chưa đủ -> email cảnh báo</summary>
+    private async Task BanOrNotifyAsync(Guid userId, string whatHappened)
+    {
+        var activeCount = await CountActiveStrikesAsync(userId);
+        var banned = await BanIfNeededAsync(userId);
         if (!banned)
-            await NotifyStrikeAsync(media.OwnerId, reasonText, questions.Count, activeCount);
+            await NotifyStrikeAsync(userId, whatHappened, activeCount);
     }
 
     private Task<int> CountActiveStrikesAsync(Guid userId)
@@ -248,14 +324,14 @@ public class ModerationService : IModerationService
         return true;
     }
 
-    private async Task NotifyStrikeAsync(Guid userId, string reasonText, int deletedQuestions, int activeCount)
+    private async Task NotifyStrikeAsync(Guid userId, string whatHappened, int activeCount)
     {
         var user = await _context.DomainUsers.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null)
             return;
 
         await SendEmailSafeAsync(user.Email, "[AIQuizzizz] Cảnh báo vi phạm tiêu chuẩn cộng đồng",
-            $"<p>Một ảnh bạn tải lên bị phát hiện vi phạm ({reasonText}). {deletedQuestions} câu hỏi dùng ảnh này đã bị xóa.</p>" +
+            $"<p>{whatHappened}</p>" +
             $"<p>Số vi phạm còn hiệu lực: <b>{activeCount}/{_settings.StrikesToBan}</b>. " +
             $"Mỗi vi phạm tự hết hiệu lực sau {_settings.StrikeExpiryDays} ngày. " +
             $"Đạt {_settings.StrikesToBan} vi phạm tài khoản sẽ bị khóa tự động.</p>");
