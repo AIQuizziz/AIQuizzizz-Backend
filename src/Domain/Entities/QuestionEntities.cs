@@ -39,13 +39,6 @@ public enum FolderShareMode
     ViewOnly
 }
 
-public enum TestTemplateUserShareMode
-{
-    Owner,
-    Editable,
-    ViewOnly
-}
-
 //====Bắt đầu JSON
 public class QTypeMultipleChoice
 {
@@ -159,13 +152,24 @@ public class Question : BaseAuditableEntity
     public Guid? MediaId { get; set; }
     public MediaType? MediaType { get; set; }
 
+    /// <summary>
+    /// Phiên bản nội dung của câu hỏi trong bộ câu hỏi: tăng 1 mỗi khi nội dung (ContentHash) đổi.
+    /// Tự cập nhật khi lưu (QuestionContentInterceptor).
+    /// </summary>
+    public int Version { get; set; } = 1;
+    /// <summary>SHA-256 nội dung câu hỏi (không gồm điểm), xem QuestionContent.Hash</summary>
+    public string? ContentHash { get; set; }
+    /// <summary>Bản sao trong bài test: câu gốc trong bộ câu hỏi được chép từ đó</summary>
+    public Guid? SourceQuestionId { get; set; }
+    /// <summary>Bản sao trong bài test: Version của câu gốc tại lúc chép (hoặc lúc cập nhật theo bản gốc)</summary>
+    public int? SourceVersion { get; set; }
 
     // Navigation properties
     public Media? Media { get; set; }
+    public Question? SourceQuestion { get; set; }
     public QuestionSet? QuestionSet { get; set; }
     public List<Comment> Comments { get; set; } = new();
     public List<UserQuestionSetHistory> UserQuestionSetHistories { get; set; } = new();
-    public List<TestTemplateQuestion> TestTemplateQuestions { get; set; } = new();
     public List<TestQuestion> TestQuestions { get; set; } = new();
     public List<TestVersionQuestion> TestVersionQuestions { get; set; } = new();
     public List<AttemptQuestion> AttemptQuestions { get; set; } = new();
@@ -210,6 +214,7 @@ public class QuestionSet : BaseAuditableEntity
     public List<ClassQuestionSet> ClassQuestionSets { get; set; } = new();
     public List<UserQuestionSetAccessHistory> AccessHistories { get; set; } = new();
     public List<QuestionSetRating>  QuestionSetRatings { get; set; } = new();
+    public List<FolderQuestionSet> FolderQuestionSets { get; set; } = new();
 }
 
 public class QuestionSetUser : BaseAuditableEntity
@@ -265,39 +270,6 @@ public class UserQuestionSetAccessHistory : BaseEntity
     public QuestionSet? QuestionSet { get; set; }
 }
 
-public class TestTemplate : BaseAuditableEntity
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public required string Name { get; set; }
-    public bool IsDeleted { get; set; }
-    public string? Description { get; set; }
-
-    // Navigation properties
-    public List<TestTemplateQuestion> TestTemplateQuestions { get; set; } = new();
-    public List<TestTemplateUser> TestTemplateUsers { get; set; } = new();
-    public List<FolderTestTemplate> FolderTestTemplates { get; set; } = new();
-}
-
-public class TestTemplateQuestion : BaseAuditableEntity
-{
-    public  Guid Id { get; set; } = Guid.NewGuid();
-    public required Guid TestTemplateId { get; set; }
-    public required Guid QuestionId { get; set; }
-
-    public TestTemplate? TestTemplate { get; set; }
-    public Question? Question { get; set; }
-}
-
-public class TestTemplateUser : BaseAuditableEntity
-{
-    public required Guid UserId { get; set; }
-    public required Guid TestTemplateId { get; set; }
-    public TestTemplateUserShareMode ShareMode { get; set; }
-    public bool IsViewed { get; set; }
-    public User? User { get; set; }
-    public TestTemplate? TestTemplate { get; set; }
-}
-
 public class Folder : BaseAuditableEntity
 {
     public  Guid Id { get; set; } = Guid.NewGuid();
@@ -306,16 +278,17 @@ public class Folder : BaseAuditableEntity
 
     // Navigation properties
     public List<FolderUser> FolderUsers { get; set; } = new();
-    public List<FolderTestTemplate> FolderTestTemplates { get; set; } = new();
+    public List<FolderQuestionSet> FolderQuestionSets { get; set; } = new();
 }
 
-public class FolderTestTemplate : BaseAuditableEntity
+/// <summary>Bộ câu hỏi nằm trong thư mục (thành viên thư mục xem được bộ và dùng câu hỏi của bộ để tạo đề)</summary>
+public class FolderQuestionSet : BaseAuditableEntity
 {
     public required Guid FolderId { get; set; }
-    public required Guid TestTemplateId { get; set; }
+    public required Guid QuestionSetId { get; set; }
 
     public Folder? Folder { get; set; }
-    public TestTemplate? TestTemplate { get; set; }
+    public QuestionSet? QuestionSet { get; set; }
 }
 
 public class FolderUser : BaseAuditableEntity

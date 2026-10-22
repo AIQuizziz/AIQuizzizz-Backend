@@ -9,7 +9,6 @@ public interface IFolderTestService
 {
     Task<bool> CanDeleteOrEditFolderTest(Guid folderTestId, CancellationToken cancellationToken);
     Task<bool> IsOwnerOrEditor(Guid folderTestId, CancellationToken cancellationToken);
-    Task TryCanUseTesTemplate (Guid testTemplateId);
 }
 
 public class FolderTestService : IFolderTestService
@@ -51,17 +50,5 @@ public class FolderTestService : IFolderTestService
             .FirstOrDefaultAsync(cancellationToken);
 
         return folderUser != null;
-    }
-
-    public async Task TryCanUseTesTemplate(Guid testTemplateId)
-    {
-        // Thêm template vào folder = chia sẻ lại cho thành viên folder -> chỉ Owner/Editable (ViewOnly không được)
-        var accessToView = await _context.TestTemplateUsers
-            .Where(t => t.UserId.Equals(_user.UserId) && t.TestTemplateId.Equals(testTemplateId)
-                        && (t.ShareMode == TestTemplateUserShareMode.Owner || t.ShareMode == TestTemplateUserShareMode.Editable))
-            .FirstOrDefaultAsync();
-        
-        if (accessToView == null)
-            throw new ErrorCodeException(ErrorCodes.USER_NOT_HAVE_PERMISSION_IN_TEST_TEMPLATE, "User không có quyền dùng test template này");
     }
 }

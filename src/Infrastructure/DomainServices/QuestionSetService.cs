@@ -85,6 +85,17 @@ public class QuestionSetService : IQuestionSetService
         if (hasShareAccess)
             return true;
 
+        // Thành viên thư mục chứa bộ câu hỏi (chia sẻ thư mục = chia sẻ quyền xem các bộ bên trong)
+        hasShareAccess = await (
+            from fu in _context.FolderUsers
+            join fqs in _context.FolderQuestionSets
+                on fu.FolderId equals fqs.FolderId
+            where fu.UserId == userId && fqs.QuestionSetId == questionSet.Id && !fu.Folder!.IsDeleted
+            select fu
+        ).AnyAsync();
+
+        if (hasShareAccess)
+            return true;
 
         return false;
     }

@@ -150,7 +150,7 @@ public class ModerationService : IModerationService
         media.ModerationStatus = MediaModerationStatus.Violated;
         media.IsDeleted = true;
 
-        // Xoá (soft delete) mọi câu hỏi dùng ảnh vi phạm, kể cả bản copy trong test/test template
+        // Xoá (soft delete) mọi câu hỏi dùng ảnh vi phạm, kể cả bản sao trong bài test
         var questions = await _context.Questions
             .Where(q => q.MediaId == media.Id && !q.IsDeleted)
             .ToListAsync();
@@ -164,9 +164,6 @@ public class ModerationService : IModerationService
             if (set != null)
                 set.QuestionCount = Math.Max(0, set.QuestionCount - group.Count());
         }
-
-        var templateLinks = await _context.TestTemplateQuestions.Where(t => questionIds.Contains(t.QuestionId)).ToListAsync();
-        _context.TestTemplateQuestions.RemoveRange(templateLinks);
 
         var versionLinks = await _context.TestVersionQuestions
             .Where(v => questionIds.Contains(v.QuestionId))

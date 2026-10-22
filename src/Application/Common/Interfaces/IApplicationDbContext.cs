@@ -16,11 +16,8 @@ public interface
     public DbSet<QuestionSet> QuestionSets { get; }
     public DbSet<Comment> Comments { get; }
     public DbSet<UserQuestionSetHistory> UserQuestionSetHistories { get; }
-    public DbSet<TestTemplate> TestTemplates { get; }
-    public DbSet<TestTemplateQuestion> TestTemplateQuestions { get; }
-    public DbSet<TestTemplateUser> TestTemplateUsers { get; }
     public DbSet<Folder> Folders { get; }
-    public DbSet<FolderTestTemplate> FolderTestTemplates { get; }
+    public DbSet<FolderQuestionSet> FolderQuestionSets { get; }
     public DbSet<FolderUser> FolderUsers { get; }
     public DbSet<Test> Tests { get; }
     public DbSet<TestVersion> TestVersions { get; }

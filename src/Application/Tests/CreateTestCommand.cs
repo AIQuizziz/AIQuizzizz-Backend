@@ -1,6 +1,7 @@
 ﻿using CleanArchitectureBase.Application.Common.Exceptions;
 using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Application.Common.Security;
+using CleanArchitectureBase.Application.MediaFiles;
 using CleanArchitectureBase.Application.Plans.Service;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
 using CleanArchitectureBase.Application.Tests.Service;
@@ -144,32 +145,22 @@ public class CreateTestCommandHandler : IRequestHandler<CreateTestCommand, Guid>
             throw new ErrorCodeException(ErrorCodes.NUMBER_OF_QUESTION_EXCEED_LIMIT,
                 "Số lượng câu hỏi không được vượt quá 100");
 
-        var validQuestionIds = await _testService.QuestionAccessAndCompareForTest(rq.Questions, cancellationToken);
-
-        var questionsToAdd = new List<Question>();
+        // Câu chọn từ bộ câu hỏi: kiểm tra quyền và lấy câu gốc (để ghi nguồn + phiên bản)
+        var sources = await _testService.GetSourceQuestionsForTest(
+            rq.Questions.Where(q => q.QuestionId.HasValue).Select(q => q.QuestionId!.Value), cancellationToken);
 
         var mediaMap = await _context.ResolveQuestionMediaAsync(rq.Questions, _user.UserId!.Value, cancellationToken);
 
-        var questionIds = rq.Questions.Select((q, index) =>
+        // Mọi câu trong bài test là bản sao riêng của bài
+        var questionsToAdd = rq.Questions.Select((dto, index) =>
         {
-            if (q.QuestionId.HasValue && validQuestionIds.Contains(q.QuestionId.Value))
-                return q.QuestionId.Value;
-
-            var question = new Question
-            {
-                Id = Guid.NewGuid(),
-                Type = Enum.Parse<QuestionType>(q.Type!),
-                QuestionText = q.QuestionText,
-                ExplainText = q.ExplainText,
-                TextFormat = TextFormatHelper.Resolve(q.TextFormat, TextFormat.PlainText),
-                Score = q.Score,
-                Order = index,
-                DataJson = CreateUpdateQuestionDto.Serializer.Serialize(q)
-            };
-            question.ApplyMedia(q, mediaMap);
-            questionsToAdd.Add(question);
-            return question.Id;
+            var source = dto.QuestionId.HasValue ? sources[dto.QuestionId.Value] : null;
+            var question = TestQuestionFactory.Create(dto, mediaMap, source);
+            question.Order = index;
+            return question;
         }).ToList();
+
+        var questionIds = questionsToAdd.Select(q => q.Id).ToList();
         
         // Bản gốc của bài test: thứ tự client gửi lên + điểm của từng câu trong bài này
         var testQuestions = questionIds.Select((questionId, index) => new TestQuestion

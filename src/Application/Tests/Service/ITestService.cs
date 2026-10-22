@@ -3,6 +3,7 @@ using CleanArchitectureBase.Application.Classes.Service;
 using CleanArchitectureBase.Application.Common.Exceptions;
 using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
+using CleanArchitectureBase.Application.QuestionSets.Services;
 using CleanArchitectureBase.Domain.Constants;
 using CleanArchitectureBase.Domain.Entities;
 
@@ -10,8 +11,7 @@ namespace CleanArchitectureBase.Application.Tests.Service;
 
 public interface ITestService
 {
-    Task<List<Guid>> QuestionAccessAndCompareForTest(List<CreateUpdateQuestionDto> question, CancellationToken cancellationToken);
-    CheckUpdateQuestion CheckQuestionsForUpdate(List<CreateUpdateQuestionDto> questionDtos, List<Question> questions);
+    Task<Dictionary<Guid, Question>> GetSourceQuestionsForTest(IEnumerable<Guid> questionIds, CancellationToken cancellationToken);
     Task<bool> CanViewOrEditTest(Guid classId, CancellationToken cancellationToken);
     Task<bool> CanViewHistoryOfTest(Guid testId, CancellationToken cancellationToken);
     Task<bool> CanCreateTest(Guid classId);
@@ -26,90 +26,59 @@ public class TestService : ITestService
     private readonly IApplicationDbContext _context;
     private readonly IUser _user;
     private readonly IIdentityService _identityService;
+    private readonly IQuestionSetService _questionSetService;
 
     public TestService(
         IApplicationDbContext context,
         IUser user,
-        IIdentityService identityService)
+        IIdentityService identityService,
+        IQuestionSetService questionSetService)
     {
         _context = context;
         _user = user;
         _identityService = identityService;
+        _questionSetService = questionSetService;
     }
 
-    public async Task<List<Guid>> QuestionAccessAndCompareForTest(List<CreateUpdateQuestionDto> question,
+    /// <summary>
+    /// Câu hỏi có sẵn được chọn vào bài test phải là câu (chưa xoá) của bộ câu hỏi mà người dùng xem được:
+    /// của mình, được chia sẻ, công khai, trong lớp hoặc trong thư mục được chia sẻ. Trả về câu gốc theo Id.
+    /// </summary>
+    public async Task<Dictionary<Guid, Question>> GetSourceQuestionsForTest(IEnumerable<Guid> questionIds,
         CancellationToken cancellationToken)
     {
-        var questionSetPairs = question
-            .Where(q => q.QuestionId.HasValue && q.QuestionId != Guid.Empty)
-            .Select(q => q.QuestionId)
-            .ToList();
+        var ids = questionIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, Question>();
 
-        if (questionSetPairs.Count == 0) return new List<Guid>();
-
-        var validQuestionInTestTemplate = await _context.TestTemplateQuestions
-            .Include(x => x.Question)
-            .Include(x => x.TestTemplate)
-            .ThenInclude(x => x!.TestTemplateUsers)
-            .Include(qs => qs.TestTemplate)
-            .ThenInclude(x => x!.FolderTestTemplates)
-            .ThenInclude(x => x.Folder)
-            .ThenInclude(x => x!.FolderUsers)
-            .Where(q => questionSetPairs.Contains(q.QuestionId))
-            .Where(q =>
-                q.TestTemplate!.TestTemplateUsers.Any(tu => tu.UserId == _user.UserId)
-                || q.TestTemplate!.FolderTestTemplates.Any(ft =>
-                    ft.Folder!.FolderUsers.Any(fu => fu.UserId == _user.UserId)))
-            .Distinct()
+        var sources = await _context.Questions
+            .Include(q => q.QuestionSet)
+            .Where(q => ids.Contains(q.Id) && !q.IsDeleted && q.QuestionSetId != null && !q.QuestionSet!.IsDeleted)
             .ToListAsync(cancellationToken);
 
-
-        var invalidQuestion = questionSetPairs
-            .Where(q => !validQuestionInTestTemplate.Any(v => v.QuestionId.Equals(q!.Value)))
-            .ToList();
-
-        if (invalidQuestion.Count > 0)
+        var viewableSets = new HashSet<Guid>();
+        foreach (var questionSet in sources.Select(q => q.QuestionSet!).DistinctBy(qs => qs.Id))
         {
-            var errors = new Dictionary<string, string[]>
+            if (await _questionSetService.CanUserViewQuestionSet(_user.UserId, questionSet))
+                viewableSets.Add(questionSet.Id);
+        }
+
+        var allowed = sources
+            .Where(q => viewableSets.Contains(q.QuestionSetId!.Value))
+            .ToDictionary(q => q.Id);
+
+        var invalid = ids.Where(id => !allowed.ContainsKey(id)).ToList();
+        if (invalid.Count > 0)
+        {
+            throw new ErrorCodeException(new Dictionary<string, string[]>
             {
                 {
-                    ErrorCodes.USER_NOT_ACCESS_TO_QUESTION_SET, invalidQuestion
-                        .Select(q => $"Question {q!.Value} không có quyền truy cập hoặc không tồn tại")
-                        .ToArray()
+                    ErrorCodes.USER_NOT_ACCESS_TO_QUESTION_SET,
+                    invalid.Select(id => $"Question {id} không có quyền truy cập hoặc không tồn tại").ToArray()
                 }
-            };
-
-            throw new ErrorCodeException(errors);
+            });
         }
-        
-        return validQuestionInTestTemplate
-            .Select(x => new { x.Question, MatchingQuestion = question.First(q => q.QuestionId!.Equals(x.QuestionId)) })
-            // Chỉ so nội dung: điểm của câu trong bài test lưu ở TestQuestion, đổi điểm không cần tạo câu mới
-            .Where(x => CreateUpdateQuestionDto.Compare.CompareQuestion(x.Question!, x.MatchingQuestion))
-            .Select(x => x.Question!.Id)
-            .ToList();
-    }
-    
-    public CheckUpdateQuestion CheckQuestionsForUpdate(List<CreateUpdateQuestionDto> questionDtos,List<Question> questions)
-    {
-        if (questionDtos.Count == 0 || questionDtos.Count == 0) return new CheckUpdateQuestion();
 
-        var notUpdateQuestionIds = questions
-            .Where(x =>
-                CreateUpdateQuestionDto.Compare.CompareQuestion(x, questionDtos.First(q => q.QuestionId!.Equals(x.Id))))
-            .Select(x => x.Id)
-            .ToList();
-
-        var updateQuestionIds = questionDtos
-            .Where(x => !notUpdateQuestionIds.Contains(x.QuestionId!.Value))
-            .Select(x => x.QuestionId!.Value)
-            .ToList();
-
-        return new CheckUpdateQuestion
-        {
-            UpdateQuestionIds = updateQuestionIds,
-            NotUpdateQuestionIds = notUpdateQuestionIds
-        };
+        return allowed;
     }
 
     public async Task<bool> CanViewOrEditTest(Guid classId, CancellationToken cancellationToken)

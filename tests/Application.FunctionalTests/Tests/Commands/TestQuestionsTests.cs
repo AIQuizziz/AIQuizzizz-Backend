@@ -143,7 +143,7 @@ public class TestQuestionsTests : BaseTestFixture
         var before = await OriginalOf(testId);
 
         var dtos = AsEditDtos(await SendAsync(new GetTestDetailQuery { TestId = testId }));
-        dtos[1].QuestionText = "Câu 2 (đã sửa)";             // sửa nội dung -> câu mới
+        dtos[1].QuestionText = "Câu 2 (đã sửa)";             // sửa nội dung: câu của riêng bài nên sửa tại chỗ
         var deleted = dtos[2].QuestionId!.Value;              // xoá câu 3
         var request = new List<CreateUpdateQuestionDto> { dtos[1], dtos[0], Question("Câu mới", 4) }; // đảo thứ tự + thêm câu
         await SendAsync(UpdateCommand(testId, request, 3, new() { deleted }));
@@ -151,9 +151,11 @@ public class TestQuestionsTests : BaseTestFixture
         var after = await OriginalOf(testId);
         after.Should().HaveCount(3);
         after.Select(x => x.Order).Should().Equal(0, 1, 2);
-        after[0].QuestionId.Should().NotBe(before[1].QuestionId, "nội dung đổi nên là câu mới");
+        after[0].QuestionId.Should().Be(before[1].QuestionId, "câu trong bài là bản sao riêng nên sửa tại chỗ");
+        (await FindAsync<Question>(after[0].QuestionId))!.QuestionText.Should().Be("Câu 2 (đã sửa)");
         after[1].QuestionId.Should().Be(before[0].QuestionId, "câu không đổi được giữ nguyên");
         after.Select(x => x.QuestionId).Should().NotContain(deleted);
+        (await FindAsync<Question>(deleted))!.IsDeleted.Should().BeTrue("bản sao bị bỏ khỏi bài được xoá mềm");
         after.Select(x => x.Score).Should().Equal(2f, 1f, 4f);
 
         var test = await FindAsync<Test>(testId);

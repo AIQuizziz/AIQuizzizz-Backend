@@ -1,4 +1,5 @@
 ﻿using CleanArchitectureBase.Application.Common.Models;
+using CleanArchitectureBase.Application.Questions.Dtos;
 using CleanArchitectureBase.Application.Tests;
 using CleanArchitectureBase.Application.Tests.Dto;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -27,6 +28,37 @@ public class Test : EndpointGroupBase
 
         group.MapDelete(DeleteTest, "/{TestId}/");
         group.MapPatch(EditTest, "/{TestId}");
+        group.MapPost(SyncTestQuestionWithSource, "/{TestId}/Questions/{QuestionId}/SyncWithSource");
+
+        // Nhập câu hỏi từ file Excel khi soạn bài test (trước đây ở /TestTemplate/ImportFile)
+        var groupWithoutAntiforgery = app.MapGroup(this).DisableAntiforgery();
+        groupWithoutAntiforgery.MapPost(ImportFileTest, "/ImportFile");
+    }
+
+    public async Task<Ok<ApiResponse<QuestionResponseDto>>> SyncTestQuestionWithSource(
+        [FromRoute] Guid testId,
+        [FromRoute] Guid questionId,
+        ISender sender)
+    {
+        var result = await sender.Send(new SyncTestQuestionWithSourceCommand { TestId = testId, QuestionId = questionId });
+        return result.ToOk();
+    }
+
+    public async Task<Ok<ApiResponse<ImportedQuestionDto>>> ImportFileTest(
+        [FromForm] IFormFile file,
+        ISender sender)
+    {
+        var rq = new FileStreamData()
+        {
+            Data = file.OpenReadStream(),
+            ContentType = file.ContentType,
+            FileName = file.FileName,
+        };
+        var result = await sender.Send(new ImportFileTestCommand
+        {
+            FileData = rq
+        });
+        return result.ToOk();
     }
     
     public async Task<Ok<ApiResponse<TestDetailDto>>> GetTestDetail(

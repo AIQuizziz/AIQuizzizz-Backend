@@ -45,9 +45,13 @@ public static class QuestionMediaExtensions
                 .Where(q =>
                     (q.QuestionSet != null && !q.QuestionSet.IsDeleted &&
                      (q.QuestionSet.VisibilityMode == QuestionSetVisibilityMode.Public ||
-                      q.QuestionSet.QuestionSetUsers.Any(u => u.UserId == userId)))
-                    || q.TestTemplateQuestions.Any(t => t.TestTemplate != null && !t.TestTemplate.IsDeleted &&
-                                                        t.TestTemplate.TestTemplateUsers.Any(u => u.UserId == userId)))
+                      q.QuestionSet.QuestionSetUsers.Any(u => u.UserId == userId) ||
+                      q.QuestionSet.FolderQuestionSets.Any(f => f.Folder != null && !f.Folder.IsDeleted &&
+                                                                 f.Folder.FolderUsers.Any(u => u.UserId == userId))))
+                    // Bản sao trong bài test mình quản lý: giữ được ảnh/video của câu gốc dù bộ gốc đã đổi quyền hoặc bị xoá
+                    || q.TestQuestions.Any(t => t.Test != null && !t.Test.IsDeleted &&
+                                                t.Test.Class!.ClassUsers.Any(u => u.UserId == userId &&
+                                                    (u.ShareMode == ClassShareMode.Owner || u.ShareMode == ClassShareMode.Teacher))))
                 .Select(q => q.MediaId!.Value)
                 .Distinct()
                 .ToListAsync(cancellationToken);

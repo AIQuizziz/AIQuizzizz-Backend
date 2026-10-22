@@ -13,12 +13,12 @@ public class Folder : EndpointGroupBase
         var group = app.MapGroup(this);
 
         group.MapGet(SearchFolderTest, "");
-        group.MapGet(SearchTestTemplateInFolder, "/{FolderId}/TestTemplates");
+        group.MapGet(SearchQuestionSetInFolder, "/{FolderId}/QuestionSets");
         group.MapGet(GetSharingInFolder, "/{FolderId}/Sharing");
-        group.MapPost(AddTestTemplateToFolder, "/{FolderId}/TestTemplate/{TestTemplateId}");
+        group.MapPost(AddQuestionSetToFolder, "/{FolderId}/QuestionSet/{QuestionSetId}");
         group.MapPost(CreateFolder, "");
         group.MapDelete(DeleteFolder, "/{FolderId}/");
-        group.MapDelete(RemoveTestTestTemplateInFolder, "/{FolderId}/TestTemplate/{TestTemplateId}");
+        group.MapDelete(RemoveQuestionSetInFolder, "/{FolderId}/QuestionSet/{QuestionSetId}");
         group.MapPatch(UpdateSharingInFolder, "/{FolderId}/Sharing");
 
         app.MapGroup(this)
@@ -31,29 +31,29 @@ public class Folder : EndpointGroupBase
         return result.ToOk();
     }
 
-    public async Task<Ok<ApiResponse<Guid>>> AddTestTemplateToFolder(
+    public async Task<Ok<ApiResponse<Guid>>> AddQuestionSetToFolder(
         [FromRoute] Guid folderId,
-        [FromRoute] Guid testTemplateId,
+        [FromRoute] Guid questionSetId,
         ISender sender)
     {
-        var rq = new AddTestTemplateToFolderCommand
+        var rq = new AddQuestionSetToFolderCommand
         {
             FolderId = folderId,
-            TestTemplateId = testTemplateId,
+            QuestionSetId = questionSetId,
         };
         var result = await sender.Send(rq);
         return result.ToOk();
     }
 
-    public async Task<Ok<ApiResponse<Guid>>> RemoveTestTestTemplateInFolder(
+    public async Task<Ok<ApiResponse<Guid>>> RemoveQuestionSetInFolder(
         [FromRoute] Guid folderId,
-        [FromRoute] Guid testTemplateId,
+        [FromRoute] Guid questionSetId,
         ISender sender)
     {
-        var rq = new RemoveTestTemplateInFolderCommand
+        var rq = new RemoveQuestionSetInFolderCommand
         {
             FolderId = folderId,
-            TestTemplateId = testTemplateId,
+            QuestionSetId = questionSetId,
         };
         var result = await sender.Send(rq);
         return result.ToOk();
@@ -76,16 +76,16 @@ public class Folder : EndpointGroupBase
         return result.ToOk();
     }
 
-    public async Task<Ok<ApiResponse<SearchTestTemplateInFolderDto>>> SearchTestTemplateInFolder(
+    public async Task<Ok<ApiResponse<SearchQuestionSetInFolderDto>>> SearchQuestionSetInFolder(
         [FromRoute] Guid folderId,
-        [FromQuery] string? testTemplateName,
+        [FromQuery] string? questionSetName,
         ISender sender,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 5)
     {
-        var rq = new SearchTestTemplateInFolderQuery
+        var rq = new SearchQuestionSetInFolderQuery
         {
-            FolderId = folderId, PageNumber = pageNumber, PageSize = pageSize, TestTemplateName = testTemplateName
+            FolderId = folderId, PageNumber = pageNumber, PageSize = pageSize, QuestionSetName = questionSetName
         };
 
         var result = await sender.Send(rq);
