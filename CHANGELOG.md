@@ -8,7 +8,7 @@
 - **Chữ hoa / thường**: WiktAPI phân biệt hoa/thường nên "Created" không tìm thấy (chỉ có "created"), "Junior"/"Middle" ra tên thị trấn / vùng đất. Nay chữ thường hoặc hoa chữ đầu tra cả hai dạng, lấy dạng nhiều nghĩa hơn (bằng nhau giữ chữ đã gõ): "Junior" -> "junior", "House" -> "house", "English" giữ nguyên, "london" -> "London"; dạng khác (FOMO, iPhone) thử đúng chữ gốc trước. Phần dịch dùng lại mục từ đã chọn.
 - **Cache theo đúng chữ đã gõ** (trước gộp về chữ thường): kết quả sai của "Junior" từng bị dùng lại cho "junior" trong 24 giờ, "Created" (không tìm thấy) cho "created" trong 10 phút.
 - **Thứ tự nghĩa**: dạng biến đổi ("simple past of run") lên đầu, nghĩa hiếm / cổ / cách viết khác xuống cuối, rồi danh từ > động từ > tính từ > trạng từ. "ran" không còn mở đầu bằng "Yarns coiled on a spun-yarn winch".
-- **Ví dụ**: bỏ trích dẫn sách / báo (có `ref`), chỉ giữ câu ví dụ ngắn.
+- **Ví dụ**: bỏ trích dẫn sách / báo (có `ref`, hoặc không ghi type mà mở đầu bằng năm / dài quá 200 ký tự, vd "1821-1822, Vicesimus Knox, Remarks on…"), chỉ giữ câu ví dụ ngắn.
 - **Bản dịch y nguyên**: LibreTranslate trả lại đúng từ gốc ("ephemeral" -> "ephemeral") thì coi là không dịch được.
 - Test: 6 test mới trong `WiktapiServiceTests`, cập nhật test cũ theo số request mới; unit 186/186.
 
