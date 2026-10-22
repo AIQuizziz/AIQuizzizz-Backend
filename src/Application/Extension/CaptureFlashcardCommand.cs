@@ -69,7 +69,6 @@ public class CaptureFlashcardCommandValidator : AbstractValidator<CaptureFlashca
 public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCommand, CaptureFlashcardResult>
 {
     private const int MaxQuestionsPerSet = 500;
-    private const string Provider = "dictionaryapi.dev";
 
     private readonly IApplicationDbContext _context;
     private readonly IUser _user;
@@ -186,7 +185,7 @@ public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCo
         // Tắt tự động dịch/tra: để trống phần nghĩa (người dùng tự điền sau), không gọi dịch vụ ngoài
         if (!translate)
         {
-            card.Lookup = new QFlashcardLookup { Provider = Provider, Status = "skipped" };
+            card.Lookup = new QFlashcardLookup { Provider = _dictionary.Provider, Status = "skipped" };
             return (card, false);
         }
 
@@ -198,7 +197,7 @@ public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCo
             card.Back.AudioUrl = entry.AudioUrl;
             card.Back.Meanings = entry.Meanings;
         }
-        card.Lookup = new QFlashcardLookup { Provider = Provider, Status = lookup.Status };
+        card.Lookup = new QFlashcardLookup { Provider = _dictionary.Provider, Status = lookup.Status };
 
         var translated = false;
         // Cùng ngôn ngữ nguồn và đích: chỉ cần định nghĩa từ điển, không dịch
@@ -206,7 +205,7 @@ public class CaptureFlashcardCommandHandler : IRequestHandler<CaptureFlashcardCo
         {
             // Bản dịch của chính từ, đặt vào nghĩa đầu tiên (đáp án trắc nghiệm ưu tiên bản dịch). Từ điển không có thì chỉ có bản dịch.
             var text = await _translator.TranslateAsync(front, sourceLang, targetLang, ct);
-            // MyMemory trả lại đúng chuỗi gốc khi không dịch được; từ cũng không có trong từ điển thì coi như không dịch được
+            // Dịch vụ dịch có thể trả lại đúng chuỗi gốc khi không dịch được; từ cũng không có trong từ điển thì coi như không dịch được
             var unchanged = string.Equals(text?.Trim(), front, StringComparison.OrdinalIgnoreCase) && card.Back.Meanings.Count == 0;
             if (!string.IsNullOrWhiteSpace(text) && !unchanged)
             {

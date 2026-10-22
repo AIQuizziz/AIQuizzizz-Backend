@@ -66,7 +66,6 @@ public class TranslateTextQueryValidator : AbstractValidator<TranslateTextQuery>
 
 public class TranslateTextQueryHandler : IRequestHandler<TranslateTextQuery, TranslateResultDto>
 {
-    private const string DictionaryProvider = "dictionaryapi.dev";
     private const string SentenceProvider = "libretranslate";
 
     private readonly IApplicationDbContext _context;
@@ -125,7 +124,7 @@ public class TranslateTextQueryHandler : IRequestHandler<TranslateTextQuery, Tra
     {
         var lookup = await _dictionary.LookupAsync(result.Text, result.SourceLang, ct);
         result.LookupStatus = lookup.Status;
-        result.Back.Lookup = new QFlashcardLookup { Provider = DictionaryProvider, Status = lookup.Status };
+        result.Back.Lookup = new QFlashcardLookup { Provider = _dictionary.Provider, Status = lookup.Status };
         if (lookup.Entry != null)
         {
             result.Back.Back.Phonetic = lookup.Entry.Phonetic;

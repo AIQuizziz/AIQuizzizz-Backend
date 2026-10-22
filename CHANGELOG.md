@@ -4,6 +4,13 @@
 
 ## [Unreleased] — 2026-10-19
 
+### Changed — Tra từ / dịch từ cho thẻ ghi nhớ: WiktAPI tự host thay Free Dictionary API + MyMemory
+- **`WiktapiService`** (`IDictionaryLookupService` + phần dịch từ) gọi WiktAPI tự host (github.com/TheAlexLichter/wiktapi.dev @886100d, dữ liệu Wiktionary qua kaikki.org): định nghĩa + ví dụ ngắn (`/definitions`), IPA + file phát âm Wikimedia Commons (`/pronunciations`). Dịch từ tiếng Anh: bảng `translations` của Wiktionary tiếng Anh (nghĩa đầu tiên có bản dịch, tối đa 3); từ ngôn ngữ khác -> tiếng Anh: gloss tiếng Anh. Nghĩa xếp ưu tiên danh từ > động từ > tính từ > trạng từ (Wiktionary có thể để tính từ trước, vd "nhà" -> "domestic"). Cache 24h (không có từ: 10 phút, lỗi: không cache).
+- **`WordTranslationService`**: Wiktionary không có bản dịch (vd "serendipity" -> vi) thì dịch bằng LibreTranslate (cũng tự host); từ không có trong từ điển thì không gọi máy dịch (tránh "dịch" chuỗi vô nghĩa). Câu dài vẫn dịch bằng LibreTranslate như trước.
+- Cấu hình `Wiktapi__BaseUrl` (+ `Wiktapi__Editions`, mặc định `en,vi`); bỏ trống thì dùng lại Free Dictionary API + MyMemory (dịch vụ ngoài, cho môi trường dev). `IDictionaryLookupService.Provider`: thẻ ghi `lookup.provider = "wiktionary"` thay cho `dictionaryapi.dev` hằng số.
+- Triển khai: service `wiktapi` trong `deploy/docker-compose.yml` (chỉ nội bộ); dữ liệu tạo bằng `deploy/wiktapi-setup.sh`: Wiktionary tiếng Anh lọc còn mục từ en + vi (10,9 triệu -> 1,54 triệu dòng) + Wiktionary tiếng Việt -> SQLite 1.962.901 mục từ, 2,29 GB; container dùng ~71 MB RAM, tra 8–20 ms (lần đầu chưa cache ~200 ms).
+- Test: `WiktapiServiceTests` (7, JSON lấy từ phản hồi thật). Unit 180/180 trên server. Gọi thử endpoint dịch của extension trên production: house -> "nhà, nhà ở"; serendipity -> "may mắn" (dự phòng LibreTranslate); nhà -> "house; home; dwelling"; câu -> LibreTranslate; chuỗi vô nghĩa -> unavailable.
+
 ### Changed — Bỏ mẫu đề thi; thư mục chứa bộ câu hỏi; câu hỏi có phiên bản, bài test giữ bản sao
 - **Bỏ `TestTemplate`** (entity, `Application/TestTemplates`, `/api/TestTemplate`, test liên quan). Nhập câu hỏi từ Excel chuyển sang `POST /api/Test/ImportFile` (`ImportFileTestCommand`, cùng xử lý).
 - **Thư mục chứa bộ câu hỏi**: bảng `FolderQuestionSets` (thay `FolderTestTemplates`); `GET /api/Folder/{id}/QuestionSets`, `POST|DELETE /api/Folder/{id}/QuestionSet/{questionSetId}`. Thêm vào thư mục cần quyền sửa bộ + Owner/Editable trong thư mục. **Thành viên thư mục xem được các bộ trong thư mục** (`CanUserViewQuestionSet` thêm nhánh thư mục) nên chọn được câu của bộ khi tạo đề.
