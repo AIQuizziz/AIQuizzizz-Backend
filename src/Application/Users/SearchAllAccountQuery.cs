@@ -14,6 +14,7 @@ public class UserForListDto
     public Guid Id { get; set; }
     public required string Email { get; set; }
     public string? FullName { get; set; }
+    public Guid? AvatarId { get; set; }
     public long Token { get; set; }
     public long Balance { get; set; }
     public bool IsBanned { get; set; }

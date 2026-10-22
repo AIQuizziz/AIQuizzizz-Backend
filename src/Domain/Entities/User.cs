@@ -17,7 +17,10 @@ public class User
     public string? PaymentCode { get; set; } = Payment.PaymentCodePrefix + Guid.NewGuid().ToString("N")[..30];
     public bool IsPaymentLocked { get; set; }
     public DateTimeOffset Created { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>Ảnh đại diện hiện tại (Media loại Image, đã qua kiểm duyệt). Null = dùng ảnh mặc định</summary>
+    public Guid? AvatarMediaId { get; set; }
     // Navigation properties
+    public Media? AvatarMedia { get; set; }
     public List<UserSubscription> UserSubscriptions { get; set; } = new();
     public List<QuestionSetUser> QuestionSetUsers { get; set; } = new();
     public List<Comment> Comments { get; set; } = new();

@@ -47,7 +47,13 @@ public class UserConfig : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.TokenCount)
             .HasDefaultValue(0);
-                
+
+        // ảnh đại diện: media bị xoá hẳn thì user về ảnh mặc định
+        builder.HasOne(u => u.AvatarMedia)
+            .WithMany()
+            .HasForeignKey(u => u.AvatarMediaId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder
             .HasOne<UserAccount>()
             .WithOne(account => account.User)

@@ -1243,6 +1243,9 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AvatarMediaId")
+                        .HasColumnType("uuid");
+
                     b.Property<long>("Balance")
                         .HasColumnType("bigint");
 
@@ -1287,6 +1290,8 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                         .HasDefaultValue(0L);
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AvatarMediaId");
 
                     b.HasIndex("PaymentCode")
                         .IsUnique();
@@ -2265,11 +2270,18 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.User", b =>
                 {
+                    b.HasOne("CleanArchitectureBase.Domain.Entities.Media", "AvatarMedia")
+                        .WithMany()
+                        .HasForeignKey("AvatarMediaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CleanArchitectureBase.Infrastructure.Identity.UserAccount", null)
                         .WithOne("User")
                         .HasForeignKey("CleanArchitectureBase.Domain.Entities.User", "Id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("AvatarMedia");
                 });
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.UserQuestionSetAccessHistory", b =>

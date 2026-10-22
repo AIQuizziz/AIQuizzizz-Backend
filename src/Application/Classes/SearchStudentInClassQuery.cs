@@ -16,6 +16,7 @@ public class StudentSearchResultDto
     public string? FullName { get; set; }
     public required string Email { get; set; }
     public string? Position { get; set; }
+    public Guid? AvatarId { get; set; }
 }
 
 [Authorize]
@@ -94,6 +95,7 @@ public class SearchStudentInClassQueryHandler : IRequestHandler<SearchStudentInC
                 StudentId = st.UserId,
                 Email = st.User.Email,
                 FullName = st.User.FullName,
+                AvatarId = st.User.AvatarMediaId,
                 Position = st.ShareMode.ToString()
             }).AsQueryable(),
             rq.PageNumber,

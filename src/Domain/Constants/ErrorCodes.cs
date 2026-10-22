@@ -154,4 +154,9 @@ public static class ErrorCodes
     public const string MEDIA_PROCESS_FAILED = nameof(MEDIA_PROCESS_FAILED);
     public const string MEDIA_NOT_FOUND = nameof(MEDIA_NOT_FOUND);
     public const string MEDIA_VIOLATED = nameof(MEDIA_VIOLATED);
+
+    //Avatar
+    public const string AVATAR_VIOLATED = nameof(AVATAR_VIOLATED);
+    public const string AVATAR_MODERATION_FAILED = nameof(AVATAR_MODERATION_FAILED);
+    public const string AVATAR_NOT_FOUND = nameof(AVATAR_NOT_FOUND);
 }

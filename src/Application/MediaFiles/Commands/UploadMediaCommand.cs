@@ -25,7 +25,7 @@ public class UploadMediaCommand : IRequest<UploadMediaResultDto>
 
 public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, UploadMediaResultDto>
 {
-    private static readonly string[] ImageContentTypes =
+    internal static readonly string[] ImageContentTypes =
         ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/heic", "image/heif", "image/tiff"];
 
     private static readonly string[] VideoContentTypes =
