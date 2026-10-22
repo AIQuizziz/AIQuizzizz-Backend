@@ -198,6 +198,7 @@ public static class DependencyInjection
 
         // Media (MinIO qua service media-ai) + kiểm duyệt
         services.AddSingleton<IMediaUrlSigner, S3PresignedUrlSigner>();
+        services.AddSingleton<MediaPublicOrigins>();
         services.AddHttpClient<IMediaAiClient, MediaAiClient>(client => client.Timeout = TimeSpan.FromMinutes(10));
         services.AddScoped<IModerationScheduler, HangfireModerationScheduler>();
 

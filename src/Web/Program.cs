@@ -8,6 +8,7 @@ using Hangfire.PostgreSql;
 using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Application.Common.Settings;
 using CleanArchitectureBase.Application.MediaFiles.Dtos;
+using CleanArchitectureBase.Application.Common.Models;
 using CleanArchitectureBase.Application.MediaFiles.Services;
 using Microsoft.Extensions.Options;
 
@@ -74,6 +75,16 @@ app.UseHealthChecks("/health");
 // else
     app.UseCors("AllowSpecificOrigins");
 
+
+// URL media ký theo địa chỉ trình duyệt đang dùng (IP hay tên miền qua Caddy): chọn theo Host trong danh sách cấu hình
+{
+    var mediaOrigins = app.Services.GetRequiredService<CleanArchitectureBase.Infrastructure.MediaStorage.MediaPublicOrigins>();
+    app.Use(async (context, next) =>
+    {
+        MediaRequestOrigin.Current = mediaOrigins.Resolve(context.Request.Host.Value);
+        await next(context);
+    });
+}
 
 app.UseStaticFiles();
 app.UseAuthentication();

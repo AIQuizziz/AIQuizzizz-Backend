@@ -4,6 +4,10 @@
 
 ## [Unreleased] — 2026-10-19
 
+### Fixed — Ảnh / video không tải được khi vào bằng tên miền (https://thanhkhac.id.vn)
+- Presigned URL luôn ký theo `PublicS3Endpoint` (`http://100.86.165.118:8090`). Vào bằng tên miền HTTPS (Caddy -> nginx) thì trình duyệt tự nâng link ảnh thành `https://100.86.165.118:8090/...` -> `ERR_SSL_PROTOCOL_ERROR`; dùng đúng tên miền thì MinIO báo `SignatureDoesNotMatch` vì Caddy giữ Host `thanhkhac.id.vn` (SigV4 ký cả Host). Ảnh câu hỏi, video, ảnh đại diện đều hỏng.
+- Nay URL ký theo địa chỉ trình duyệt đang dùng: middleware chọn trong danh sách `PublicS3Endpoint` + **`Media:PublicOrigins`** (mới, cách nhau bởi dấu phẩy) theo tên host của request (`MediaRequestOrigin`, `MediaPublicOrigins`); scheme / cổng lấy từ cấu hình nên Host giả mạo không tạo được URL ngoài danh sách; không khớp -> `PublicS3Endpoint` như cũ. Docker: `Media__PublicOrigins: ${PUBLIC_ORIGINS:-}`. Unit test `MediaPublicOriginsTests`.
+
 ### Added — Ảnh đại diện có kiểm duyệt
 - **`User.AvatarMediaId`** (migration `AddUserAvatar`: cột uuid null, FK tới `Media`, xoá media -> SET NULL). Ảnh lưu như media ảnh câu hỏi (media-ai chuẩn hoá JPEG, MinIO `img/{id}.jpg`).
 - **API** (`AccountEndpoints`): `POST /api/Account/Avatar` (multipart `file`, mọi gói, tối đa `MaxImageSizeMb`), `DELETE /api/Account/Avatar`, `GET /api/Account/Avatar/{id}` (không cần đăng nhập vì thẻ `<img>` không gửi token; 302 tới presigned URL, `Cache-Control: private, max-age=300`; chỉ trả ảnh đang là avatar của tài khoản còn hoạt động, ảnh cũ / tài khoản bị khoá -> `AVATAR_NOT_FOUND`).
