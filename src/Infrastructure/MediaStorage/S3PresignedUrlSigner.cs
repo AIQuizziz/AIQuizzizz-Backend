@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using CleanArchitectureBase.Application.Common.Interfaces;
+using CleanArchitectureBase.Application.Common.Models;
 using CleanArchitectureBase.Application.Common.Settings;
 using Microsoft.Extensions.Options;
 
@@ -41,9 +42,11 @@ public class S3PresignedUrlSigner : IMediaUrlSigner
         var region = _settings.S3Region;
         var scope = $"{dateStamp}/{region}/s3/aws4_request";
 
-        var basePath = _endpoint.AbsolutePath.TrimEnd('/');
+        // ký theo địa chỉ trình duyệt đang dùng (IP / tên miền), mặc định PublicS3Endpoint
+        var endpoint = MediaRequestOrigin.Current ?? _endpoint;
+        var basePath = endpoint.AbsolutePath.TrimEnd('/');
         var canonicalUri = $"{basePath}/{_settings.S3Bucket}/{EncodePath(objectKey)}";
-        var host = _endpoint.IsDefaultPort ? _endpoint.Host : $"{_endpoint.Host}:{_endpoint.Port}";
+        var host = endpoint.IsDefaultPort ? endpoint.Host : $"{endpoint.Host}:{endpoint.Port}";
 
         var query = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
@@ -65,7 +68,7 @@ public class S3PresignedUrlSigner : IMediaUrlSigner
             "aws4_request");
         var signature = Hex(Hmac(signingKey, stringToSign));
 
-        return $"{_endpoint.Scheme}://{host}{canonicalUri}?{canonicalQuery}&X-Amz-Signature={signature}";
+        return $"{endpoint.Scheme}://{host}{canonicalUri}?{canonicalQuery}&X-Amz-Signature={signature}";
     }
 
     private static byte[] Hmac(byte[] key, string data) => HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(data));

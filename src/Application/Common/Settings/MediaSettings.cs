@@ -9,6 +9,11 @@ public class MediaSettings
     // ---- Presigned URL (bucket private) ----
     /// <summary>Endpoint public mà trình duyệt truy cập MinIO qua nginx (giữ nguyên Host), vd: http://100.86.165.118:8090</summary>
     public string PublicS3Endpoint { get; set; } = "http://localhost:8090";
+    /// <summary>
+    /// Các địa chỉ public khác cũng dùng được (cách nhau bởi dấu phẩy), vd https://thanhkhac.id.vn. URL media được ký
+    /// theo địa chỉ khớp Host của request; không khớp -> PublicS3Endpoint.
+    /// </summary>
+    public string? PublicOrigins { get; set; }
     public string S3Bucket { get; set; } = "aiquizz-media";
     public string S3Region { get; set; } = "us-east-1";
     public string? S3AccessKey { get; set; }
