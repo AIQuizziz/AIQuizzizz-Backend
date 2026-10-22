@@ -28,7 +28,9 @@ public class WordTranslationService : ITranslationService
 
         var machine = await _machine.TranslateAsync(text, fromLang, toLang, cancellationToken);
         if (machine.Status != "ok" || string.IsNullOrWhiteSpace(machine.Text)) return null;
-        // máy dịch trả lại đúng từ gốc = không dịch được (handler coi như unavailable)
-        return machine.Text.Trim();
+        // Máy dịch trả lại đúng từ gốc = không dịch được (vd LibreTranslate: "ephemeral" -> "ephemeral").
+        // Chỉ xét ở đây: bản dịch giống từ gốc lấy từ bảng dịch Wiktionary là có thật (vd "pizza" -> "pizza").
+        var translated = machine.Text.Trim();
+        return string.Equals(translated, text.Trim(), StringComparison.OrdinalIgnoreCase) ? null : translated;
     }
 }
