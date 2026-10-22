@@ -4,6 +4,14 @@
 
 ## [Unreleased] — 2026-10-19
 
+### Fixed — Tra từ WiktAPI: chữ hoa đầu từ, thứ tự nghĩa, ví dụ, bản dịch y nguyên
+- **Chữ hoa / thường**: WiktAPI phân biệt hoa/thường nên "Created" không tìm thấy (chỉ có "created"), "Junior"/"Middle" ra tên thị trấn / vùng đất. Nay chữ thường hoặc hoa chữ đầu tra cả hai dạng, lấy dạng nhiều nghĩa hơn (bằng nhau giữ chữ đã gõ): "Junior" -> "junior", "House" -> "house", "English" giữ nguyên, "london" -> "London"; dạng khác (FOMO, iPhone) thử đúng chữ gốc trước. Phần dịch dùng lại mục từ đã chọn.
+- **Cache theo đúng chữ đã gõ** (trước gộp về chữ thường): kết quả sai của "Junior" từng bị dùng lại cho "junior" trong 24 giờ, "Created" (không tìm thấy) cho "created" trong 10 phút.
+- **Thứ tự nghĩa**: dạng biến đổi ("simple past of run") lên đầu, nghĩa hiếm / cổ / cách viết khác xuống cuối, rồi danh từ > động từ > tính từ > trạng từ. "ran" không còn mở đầu bằng "Yarns coiled on a spun-yarn winch".
+- **Ví dụ**: bỏ trích dẫn sách / báo (có `ref`), chỉ giữ câu ví dụ ngắn.
+- **Bản dịch y nguyên**: LibreTranslate trả lại đúng từ gốc ("ephemeral" -> "ephemeral") thì coi là không dịch được.
+- Test: 6 test mới trong `WiktapiServiceTests`, cập nhật test cũ theo số request mới; unit 186/186.
+
 ### Changed — Tra từ / dịch từ cho thẻ ghi nhớ: WiktAPI tự host thay Free Dictionary API + MyMemory
 - **`WiktapiService`** (`IDictionaryLookupService` + phần dịch từ) gọi WiktAPI tự host (github.com/TheAlexLichter/wiktapi.dev @886100d, dữ liệu Wiktionary qua kaikki.org): định nghĩa + ví dụ ngắn (`/definitions`), IPA + file phát âm Wikimedia Commons (`/pronunciations`). Dịch từ tiếng Anh: bảng `translations` của Wiktionary tiếng Anh (nghĩa đầu tiên có bản dịch, tối đa 3); từ ngôn ngữ khác -> tiếng Anh: gloss tiếng Anh. Nghĩa xếp ưu tiên danh từ > động từ > tính từ > trạng từ (Wiktionary có thể để tính từ trước, vd "nhà" -> "domestic"). Cache 24h (không có từ: 10 phút, lỗi: không cache).
 - **`WordTranslationService`**: Wiktionary không có bản dịch (vd "serendipity" -> vi) thì dịch bằng LibreTranslate (cũng tự host); từ không có trong từ điển thì không gọi máy dịch (tránh "dịch" chuỗi vô nghĩa). Câu dài vẫn dịch bằng LibreTranslate như trước.
