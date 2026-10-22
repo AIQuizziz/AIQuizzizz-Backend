@@ -110,18 +110,13 @@ public class SearchTestInClassQueryHandler : IRequestHandler<SearchTestInClassQu
         
         var testIds = tests.Select(t => t.Id).ToList();
         
-        var versionQuestionCounts = await _context.TestVersions
-            .Include(tv => tv.TestVersionQuestions)
-            .Where(tv => testIds.Contains(tv.TestId) && tv.No == 0)
-            .Select(tv => new
-            {
-                TestId = tv.TestId,
-                TestVersionId = tv.Id,
-                QuestionCount = tv.TestVersionQuestions.Count()
-            })
+        var versionQuestionCounts = await _context.TestQuestions
+            .Where(tq => testIds.Contains(tq.TestId))
+            .GroupBy(tq => tq.TestId)
+            .Select(g => new { TestId = g.Key, QuestionCount = g.Count() })
             .ToDictionaryAsync(
                 x => x.TestId,
-                x => new { x.TestVersionId, x.QuestionCount },
+                x => new { x.QuestionCount },
                 cancellationToken);
         
         var attemptCounts = await _context.Attempts
@@ -153,7 +148,7 @@ public class SearchTestInClassQueryHandler : IRequestHandler<SearchTestInClassQu
         {
             var questionCount = versionQuestionCounts.ContainsKey(test.Id)
                 ? versionQuestionCounts[test.Id]
-                : new { TestVersionId = Guid.Empty, QuestionCount = 0 };
+                : new { QuestionCount = 0 };
 
             var completionCount = attemptCounts.ContainsKey(test.Id) ? attemptCounts[test.Id] : 0;
 

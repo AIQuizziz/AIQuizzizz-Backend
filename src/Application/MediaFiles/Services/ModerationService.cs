@@ -169,16 +169,20 @@ public class ModerationService : IModerationService
         _context.TestTemplateQuestions.RemoveRange(templateLinks);
 
         var versionLinks = await _context.TestVersionQuestions
-            .Include(v => v.TestVersion)
             .Where(v => questionIds.Contains(v.QuestionId))
             .ToListAsync();
         _context.TestVersionQuestions.RemoveRange(versionLinks);
-        foreach (var testId in versionLinks.Where(v => v.TestVersion != null).Select(v => v.TestVersion!.TestId).Distinct())
+
+        // Bản gốc của bài test (TestQuestions) quyết định số câu / tổng điểm
+        var testLinks = await _context.TestQuestions
+            .Where(t => questionIds.Contains(t.QuestionId))
+            .ToListAsync();
+        _context.TestQuestions.RemoveRange(testLinks);
+        foreach (var group in testLinks.GroupBy(t => t.TestId))
         {
-            var test = await _context.Tests.FirstOrDefaultAsync(t => t.Id == testId);
-            var removed = versionLinks.Where(v => v.TestVersion!.TestId == testId).Select(v => v.QuestionId).Distinct().Count();
+            var test = await _context.Tests.FirstOrDefaultAsync(t => t.Id == group.Key);
             if (test != null)
-                test.QuestionCount = Math.Max(0, test.QuestionCount - removed);
+                test.QuestionCount = Math.Max(0, test.QuestionCount - group.Count());
         }
 
         var reasonText = DescribeReasons(result.Reasons);

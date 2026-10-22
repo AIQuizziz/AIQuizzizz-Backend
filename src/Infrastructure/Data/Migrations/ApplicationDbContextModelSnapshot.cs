@@ -1006,6 +1006,36 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.ToTable("TestGrades");
                 });
 
+            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<float>("Score")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(0f);
+
+                    b.Property<Guid>("TestId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("TestId", "QuestionId")
+                        .IsUnique();
+
+                    b.ToTable("TestQuestions");
+                });
+
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2202,6 +2232,25 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestQuestion", b =>
+                {
+                    b.HasOne("CleanArchitectureBase.Domain.Entities.Question", "Question")
+                        .WithMany("TestQuestions")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CleanArchitectureBase.Domain.Entities.Test", "Test")
+                        .WithMany("TestQuestions")
+                        .HasForeignKey("TestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+
+                    b.Navigation("Test");
+                });
+
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplate", b =>
                 {
                     b.HasOne("CleanArchitectureBase.Domain.Entities.User", "CreatedByUser")
@@ -2549,6 +2598,8 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
 
                     b.Navigation("Comments");
 
+                    b.Navigation("TestQuestions");
+
                     b.Navigation("TestTemplateQuestions");
 
                     b.Navigation("TestVersionQuestions");
@@ -2581,6 +2632,8 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Navigation("Attempts");
 
                     b.Navigation("TestGrades");
+
+                    b.Navigation("TestQuestions");
 
                     b.Navigation("TestVersions");
                 });

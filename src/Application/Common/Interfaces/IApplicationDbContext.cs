@@ -24,6 +24,7 @@ public interface
     public DbSet<FolderUser> FolderUsers { get; }
     public DbSet<Test> Tests { get; }
     public DbSet<TestVersion> TestVersions { get; }
+    public DbSet<TestQuestion> TestQuestions { get; }
     public DbSet<TestVersionQuestion> TestVersionQuestions { get; }
     public DbSet<Attempt> Attempts { get; }
     public DbSet<AttemptQuestion> AttemptQuestions { get; }

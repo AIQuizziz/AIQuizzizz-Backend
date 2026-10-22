@@ -525,6 +525,35 @@ public class TestVersionConfiguration : IEntityTypeConfiguration<TestVersion>
     }
 }
 
+public class TestQuestionConfiguration : IEntityTypeConfiguration<TestQuestion>
+{
+    public void Configure(EntityTypeBuilder<TestQuestion> builder)
+    {
+        builder.HasKey(tq => tq.Id);
+
+        // cùng kiểu với Question.Score
+        builder.Property(tq => tq.Score)
+            .HasColumnType("numeric(5,2)")
+            .HasDefaultValue(0);
+
+        builder.Property(tq => tq.Order)
+            .IsRequired();
+
+        // mỗi câu hỏi chỉ xuất hiện một lần trong bản gốc của một bài test
+        builder.HasIndex(tq => new { tq.TestId, tq.QuestionId }).IsUnique();
+
+        builder.HasOne(tq => tq.Test)
+            .WithMany(t => t.TestQuestions)
+            .HasForeignKey(tq => tq.TestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(tq => tq.Question)
+            .WithMany(q => q.TestQuestions)
+            .HasForeignKey(tq => tq.QuestionId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class TestVersionQuestionConfiguration : IEntityTypeConfiguration<TestVersionQuestion>
 {
     public void Configure(EntityTypeBuilder<TestVersionQuestion> builder)

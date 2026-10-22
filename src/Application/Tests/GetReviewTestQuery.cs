@@ -102,7 +102,9 @@ public class GetReviewTestQueryHandler : IRequestHandler<GetReviewTestQuery, Rev
             .OrderBy(x => x.Order)
             .ToListAsync(cancellationToken);
         
-        var maxPoint = versionQuestions.Sum(x => x.Question!.Score);
+        var maxPoint = await _context.TestQuestions
+            .Where(x => x.TestId == attempt.TestId)
+            .SumAsync(x => x.Score, cancellationToken);
 
         var reviewTest = new ReviewTestDto
         {

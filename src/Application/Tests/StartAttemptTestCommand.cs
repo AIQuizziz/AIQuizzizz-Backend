@@ -163,6 +163,10 @@ public class StartAttemptTestCommandHandler : IRequestHandler<StartAttemptTestCo
             .OrderBy(x => x.Order)
             .ToListAsync(cancellationToken);
             
+        var scoreByQuestion = await _context.TestQuestions
+            .Where(x => x.TestId == test.Id)
+            .ToDictionaryAsync(x => x.QuestionId, x => x.Score, cancellationToken);
+
         attemptDetail.Questions = versionQuestions
             .OrderBy(x => x.Order)
             .Select(q =>
@@ -171,7 +175,10 @@ public class StartAttemptTestCommandHandler : IRequestHandler<StartAttemptTestCo
                 if (userAnswerDict != null)
                     userAnswerDict.TryGetValue(q.Question!.Id, out ans);
 
-                return QuestionAttemptDetailDto.Mapper.FromEntity(q.Question!, ans!=null && !ans.DataJson.Equals("[]") ? ans : null);
+                var dto = QuestionAttemptDetailDto.Mapper.FromEntity(q.Question!, ans!=null && !ans.DataJson.Equals("[]") ? ans : null);
+                if (scoreByQuestion.TryGetValue(q.QuestionId, out var score))
+                    dto.Score = score;
+                return dto;
             })
             .ToList();
         

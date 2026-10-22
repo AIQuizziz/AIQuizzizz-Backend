@@ -50,13 +50,18 @@ public class GetTestDetailQueryHandler : IRequestHandler<GetTestDetailQuery, Tes
         if (!canView)
             throw new ErrorCodeException(ErrorCodes.USER_NOT_HAVE_PERMISSION_IN_TEST, "Không có quyền xem");
         
-        var questions = _context.TestVersionQuestions
-            .Include(x => x.TestVersion)
-            .ThenInclude(x => x!.Test)
-            .Include(x => x.Question)
-            .Where(q => q.TestVersion!.Test!.Id == rq!.TestId && q.TestVersion.No == 0)
-            .OrderBy(q => q.Order).ThenBy(q => q.Id)
-            .Select(qs => QuestionResponseDto.Mapper.FromEntity(qs.Question!, true, false, true))
+        // Bản gốc của bài test: thứ tự gốc + điểm của câu trong bài này
+        var questions = (await _context.TestQuestions
+                .Include(x => x.Question)
+                .Where(x => x.TestId == test.Id)
+                .OrderBy(x => x.Order).ThenBy(x => x.Id)
+                .ToListAsync(cancellationToken))
+            .Select(tq =>
+            {
+                var dto = QuestionResponseDto.Mapper.FromEntity(tq.Question!, true, false, true);
+                dto.Score = tq.Score;
+                return dto;
+            })
             .ToList();
 
         return new TestDetailDto
