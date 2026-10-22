@@ -1,6 +1,7 @@
 ﻿using CleanArchitectureBase.Application.Common.Exceptions;
 using CleanArchitectureBase.Application.Common.Interfaces;
 using CleanArchitectureBase.Application.Common.Security;
+using CleanArchitectureBase.Application.MediaFiles;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
 using CleanArchitectureBase.Application.Tests.Service;
 using CleanArchitectureBase.Domain.Constants;
@@ -8,12 +9,6 @@ using CleanArchitectureBase.Application.Questions.Utils;
 using CleanArchitectureBase.Domain.Entities;
 
 namespace CleanArchitectureBase.Application.Tests;
-
-public class CheckUpdateQuestion
-{
-    public List<Guid> NotUpdateQuestionIds { get; set; } = new();
-    public List<Guid> UpdateQuestionIds { get; set; } = new();
-}
 
 [Authorize]
 public class UpdateTestCommand : IRequest<Guid>
@@ -138,28 +133,28 @@ public class UpdateTestCommandHandler : IRequestHandler<UpdateTestCommand, Guid>
             .Where(x => x.TestId == test.Id)
             .OrderBy(x => x.Order)
             .ToListAsync(cancellationToken);
-        var existingIds = testQuestions.Select(x => x.QuestionId).ToHashSet();
+        var existingByQuestion = testQuestions.ToDictionary(x => x.QuestionId);
 
-        if (!rq.DeleteQuestionIds.All(existingIds.Contains))
+        if (!rq.DeleteQuestionIds.All(existingByQuestion.ContainsKey))
             throw new ErrorCodeException(ErrorCodes.QUESTION_NOT_FOUND_TO_DELETE);
 
-        var deleteIds = rq.DeleteQuestionIds.ToHashSet();
+        var sentIds = rq.CreateUpdateQuestions.Where(x => x.QuestionId.HasValue).Select(x => x.QuestionId!.Value).ToHashSet();
+        // Id được gửi lại trong danh sách thì giữ (không xoá)
+        var deleteIds = rq.DeleteQuestionIds.Where(id => !sentIds.Contains(id)).ToHashSet();
 
-        var updateQuestionDto = rq.CreateUpdateQuestions
-            .Where(x => x.QuestionId.HasValue && existingIds.Contains(x.QuestionId.Value) && !deleteIds.Contains(x.QuestionId.Value))
-            .ToList();
-        var updateQuestion = testQuestions
-            .Where(x => updateQuestionDto.Any(q => q.QuestionId!.Value == x.QuestionId))
-            .Select(x => x.Question!)
-            .ToList();
-        var newQuestionDto = rq.CreateUpdateQuestions
-            .Where(x => !x.QuestionId.HasValue || !existingIds.Contains(x.QuestionId.Value))
-            .ToList();
+        // Câu mới chọn từ bộ câu hỏi: kiểm tra quyền và lấy câu gốc
+        var sources = await _testService.GetSourceQuestionsForTest(
+            sentIds.Where(id => !existingByQuestion.ContainsKey(id)), cancellationToken);
 
-        // Câu lấy từ mẫu đề thi mà không sửa nội dung -> dùng lại câu đó
-        var reusableIds = (await _testService.QuestionAccessAndCompareForTest(newQuestionDto, cancellationToken)).ToHashSet();
-        // Câu đang có trong bài mà không sửa nội dung -> giữ nguyên (đổi điểm / thứ tự chỉ cập nhật TestQuestion)
-        var unchangedIds = _testService.CheckQuestionsForUpdate(updateQuestionDto, updateQuestion).NotUpdateQuestionIds.ToHashSet();
+        // Dữ liệu cũ (thời còn mẫu đề thi): câu có thể đang dùng chung với bài khác / bộ câu hỏi -> không sửa tại chỗ
+        var existingIds = existingByQuestion.Keys.ToList();
+        var sharedIds = (await _context.TestQuestions
+                .Where(x => existingIds.Contains(x.QuestionId) && x.TestId != test.Id)
+                .Select(x => x.QuestionId)
+                .Distinct()
+                .ToListAsync(cancellationToken))
+            .Concat(testQuestions.Where(x => x.Question!.QuestionSetId != null).Select(x => x.QuestionId))
+            .ToHashSet();
 
         var mediaMap = await _context.ResolveQuestionMediaAsync(rq.CreateUpdateQuestions, _user.UserId!.Value, cancellationToken);
 
@@ -169,43 +164,53 @@ public class UpdateTestCommandHandler : IRequestHandler<UpdateTestCommand, Guid>
 
         foreach (var questionDto in rq.CreateUpdateQuestions)
         {
-            var questionId = questionDto.QuestionId;
-            var keep = questionId.HasValue
-                       && (unchangedIds.Contains(questionId.Value) || reusableIds.Contains(questionId.Value));
-
-            if (!keep)
+            if (questionDto.QuestionId.HasValue && existingByQuestion.TryGetValue(questionDto.QuestionId.Value, out var row))
             {
-                // Câu mới hoặc đã sửa nội dung: tạo câu mới, không sửa câu cũ (câu cũ có thể đang được mẫu đề thi dùng chung)
-                var question = new Question
+                var current = row.Question!;
+                if (!sharedIds.Contains(current.Id))
                 {
-                    Id = Guid.NewGuid(),
-                    Type = Enum.Parse<QuestionType>(questionDto.Type!),
-                    ExplainText = questionDto.ExplainText,
-                    QuestionText = questionDto.QuestionText,
-                    TextFormat = TextFormatHelper.Resolve(questionDto.TextFormat, TextFormat.PlainText),
-                    Score = questionDto.Score,
-                    DataJson = CreateUpdateQuestionDto.Serializer.Serialize(questionDto)
-                };
-                question.ApplyMedia(questionDto, mediaMap);
-                listQuestions.Add(question);
-                questionId = question.Id;
+                    // Câu của riêng bài này: sửa tại chỗ (interceptor cập nhật ContentHash)
+                    TestQuestionFactory.Apply(current, questionDto, mediaMap);
+                    finalQuestions.Add((current.Id, questionDto.Score));
+                }
+                else if (TestQuestionFactory.HashOf(questionDto, mediaMap) == QuestionContent.Hash(current))
+                {
+                    finalQuestions.Add((current.Id, questionDto.Score));
+                }
+                else
+                {
+                    var copy = TestQuestionFactory.Create(questionDto, mediaMap, source: null);
+                    copy.SourceQuestionId = current.SourceQuestionId;
+                    copy.SourceVersion = current.SourceVersion;
+                    listQuestions.Add(copy);
+                    finalQuestions.Add((copy.Id, questionDto.Score));
+                }
+                continue;
             }
 
-            finalQuestions.Add((questionId!.Value, questionDto.Score));
+            var source = questionDto.QuestionId.HasValue ? sources[questionDto.QuestionId.Value] : null;
+            var question = TestQuestionFactory.Create(questionDto, mediaMap, source);
+            listQuestions.Add(question);
+            finalQuestions.Add((question.Id, questionDto.Score));
         }
 
-        // Câu đang có mà client không gửi lên và không xoá: giữ lại, xếp sau (giữ hành vi cũ)
-        var sentIds = rq.CreateUpdateQuestions.Where(x => x.QuestionId.HasValue).Select(x => x.QuestionId!.Value).ToHashSet();
+        // Câu đang có mà client không gửi lên và không xoá: giữ lại, xếp sau
         finalQuestions.AddRange(testQuestions
             .Where(x => !sentIds.Contains(x.QuestionId) && !deleteIds.Contains(x.QuestionId))
             .Select(x => (x.QuestionId, x.Score)));
 
-        // Cập nhật bản gốc: sửa tại chỗ dòng còn dùng (tránh xoá rồi thêm lại trùng unique TestId + QuestionId)
-        var existingByQuestion = testQuestions.ToDictionary(x => x.QuestionId);
         var finalIds = finalQuestions.Select(x => x.QuestionId).ToList();
         var finalIdSet = finalIds.ToHashSet();
 
-        _context.TestQuestions.RemoveRange(testQuestions.Where(x => !finalIdSet.Contains(x.QuestionId)));
+        // Câu bị bỏ khỏi bài: gỡ khỏi bản gốc; bản sao riêng của bài thì xoá mềm
+        foreach (var removed in testQuestions.Where(x => !finalIdSet.Contains(x.QuestionId)))
+        {
+            _context.TestQuestions.Remove(removed);
+            if (!sharedIds.Contains(removed.QuestionId))
+                removed.Question!.IsDeleted = true;
+        }
+
+        // Cập nhật bản gốc: sửa tại chỗ dòng còn dùng (tránh xoá rồi thêm lại trùng unique TestId + QuestionId)
         for (var index = 0; index < finalQuestions.Count; index++)
         {
             var (questionId, score) = finalQuestions[index];
@@ -213,6 +218,7 @@ public class UpdateTestCommandHandler : IRequestHandler<UpdateTestCommand, Guid>
             {
                 row.Score = score;
                 row.Order = index;
+                row.Question!.Order = index;
             }
             else
             {
@@ -222,6 +228,8 @@ public class UpdateTestCommandHandler : IRequestHandler<UpdateTestCommand, Guid>
                 });
             }
         }
+        foreach (var question in listQuestions)
+            question.Order = finalIds.IndexOf(question.Id);
 
         // Bản trộn: đủ số lượng yêu cầu, rồi sinh lại toàn bộ từ bản gốc mới
         var currentVersions = await _context.TestVersions

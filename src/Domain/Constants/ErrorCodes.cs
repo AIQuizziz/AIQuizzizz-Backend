@@ -90,8 +90,8 @@ public static class ErrorCodes
     public const string FOLDER_NOT_FOUND = nameof(FOLDER_NOT_FOUND);
     public const string FOLDER_ALREADY_EXISTS = nameof(FOLDER_ALREADY_EXISTS);
     public const string USER_NOT_HAVE_PERMISSION_IN_FOLDER = nameof(USER_NOT_HAVE_PERMISSION_IN_FOLDER);
-    public const string TEST_TEMPLATE_ALREADY_EXISTS_IN_FOLDER = nameof(TEST_TEMPLATE_ALREADY_EXISTS_IN_FOLDER);
-    public const string TEST_TEMPLATE_NOT_FOUND_IN_FOLDER = nameof(TEST_TEMPLATE_NOT_FOUND_IN_FOLDER);
+    public const string QUESTION_SET_ALREADY_EXISTS_IN_FOLDER = nameof(QUESTION_SET_ALREADY_EXISTS_IN_FOLDER);
+    public const string QUESTION_SET_NOT_FOUND_IN_FOLDER = nameof(QUESTION_SET_NOT_FOUND_IN_FOLDER);
 
     
     //Test
@@ -99,14 +99,12 @@ public static class ErrorCodes
     public const string TEST_IS_OVERDUE = nameof(TEST_IS_OVERDUE);
     public const string TEST_NOT_FOUND = nameof(TEST_NOT_FOUND);
     public const string NUMBER_OF_QUESTION_EXCEED_LIMIT = nameof(NUMBER_OF_QUESTION_EXCEED_LIMIT);
-    public const string USER_NOT_HAVE_PERMISSION_IN_TEST_TEMPLATE = nameof(USER_NOT_HAVE_PERMISSION_IN_TEST_TEMPLATE);
     public const string USER_NOT_HAVE_PERMISSION_IN_TEST = nameof(USER_NOT_HAVE_PERMISSION_IN_TEST);
     public const string NOT_YET_TIME_TO_OPEN_TEST = nameof(NOT_YET_TIME_TO_OPEN_TEST);
     public const string STUDENT_CAN_REVIEW_THIS_TEST = nameof(STUDENT_CAN_REVIEW_THIS_TEST);
     public const string TEST_ALREADY_OPEN = nameof(TEST_ALREADY_OPEN);
-    
-    //TestTemplate
-    public const string TEST_TEMPLATE_NOT_FOUND = nameof(TEST_TEMPLATE_NOT_FOUND);
+    /// <summary>Câu hỏi trong bài test không có câu gốc (hoặc câu gốc đã bị xoá) để cập nhật theo</summary>
+    public const string SOURCE_QUESTION_NOT_FOUND = nameof(SOURCE_QUESTION_NOT_FOUND);
 
     //File
     public const string FILE_NOT_FOUND = nameof(FILE_NOT_FOUND);

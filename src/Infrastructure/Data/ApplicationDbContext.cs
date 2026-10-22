@@ -34,11 +34,8 @@ public class ApplicationDbContext : IdentityDbContext<UserAccount,
     public DbSet<QuestionSet> QuestionSets => Set<QuestionSet>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<UserQuestionSetHistory> UserQuestionSetHistories => Set<UserQuestionSetHistory>();
-    public DbSet<TestTemplate> TestTemplates => Set<TestTemplate>();
-    public DbSet<TestTemplateQuestion> TestTemplateQuestions => Set<TestTemplateQuestion>();
-    public DbSet<TestTemplateUser> TestTemplateUsers => Set<TestTemplateUser>();
     public DbSet<Folder> Folders => Set<Folder>();
-    public DbSet<FolderTestTemplate> FolderTestTemplates => Set<FolderTestTemplate>();
+    public DbSet<FolderQuestionSet> FolderQuestionSets => Set<FolderQuestionSet>();
     public DbSet<FolderUser> FolderUsers => Set<FolderUser>();
     public DbSet<Test> Tests => Set<Test>();
     public DbSet<TestVersion> TestVersions => Set<TestVersion>();

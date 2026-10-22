@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Security;
 using System.Text;
 using CleanArchitectureBase.Application.Common.Models;
-using CleanArchitectureBase.Application.TestTemplates;
+using CleanArchitectureBase.Application.Tests;
 using CleanArchitectureBase.Infrastructure.File;
 
 namespace CleanArchitectureBase.Application.UnitTests.Questions;

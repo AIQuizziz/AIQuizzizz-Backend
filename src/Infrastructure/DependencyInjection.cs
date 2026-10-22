@@ -11,7 +11,6 @@ using CleanArchitectureBase.Application.Plans.Service;
 using CleanArchitectureBase.Application.Questions.Services;
 using CleanArchitectureBase.Application.QuestionSets.Services;
 using CleanArchitectureBase.Application.Tests.Service;
-using CleanArchitectureBase.Application.TestTemplates.Service;
 using CleanArchitectureBase.Application.UserQuestionSetHistories.Services;
 using CleanArchitectureBase.Domain.Constants;
 using CleanArchitectureBase.Infrastructure.AiGenerate;
@@ -49,6 +48,8 @@ public static class DependencyInjection
         services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
         //Cấu hình Interceptor cho xử lý Event
         services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
+        //Hash nội dung + version câu hỏi (bộ câu hỏi / bản sao trong bài test)
+        services.AddScoped<ISaveChangesInterceptor, QuestionContentInterceptor>();
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
@@ -185,7 +186,6 @@ public static class DependencyInjection
         services.AddScoped<IPlanService, PlanService>(); // FreeAccess: PlanSettings__FreeAccess=true
         services.AddScoped<IClassService, ClassService>();
         services.AddScoped<ITestService, TestService>();
-        services.AddScoped<ITestTemplateService, TestTemplateService>();
         services.AddScoped<IFolderTestService, FolderTestService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IAiGenerateService, AiGenerateService>();

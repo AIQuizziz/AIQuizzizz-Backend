@@ -53,13 +53,25 @@ public class GetTestDetailQueryHandler : IRequestHandler<GetTestDetailQuery, Tes
         // Bản gốc của bài test: thứ tự gốc + điểm của câu trong bài này
         var questions = (await _context.TestQuestions
                 .Include(x => x.Question)
+                .ThenInclude(q => q!.SourceQuestion)
+                .ThenInclude(q => q!.QuestionSet)
                 .Where(x => x.TestId == test.Id)
                 .OrderBy(x => x.Order).ThenBy(x => x.Id)
                 .ToListAsync(cancellationToken))
             .Select(tq =>
             {
-                var dto = QuestionResponseDto.Mapper.FromEntity(tq.Question!, true, false, true);
+                var question = tq.Question!;
+                var dto = QuestionResponseDto.Mapper.FromEntity(question, true, false, true);
                 dto.Score = tq.Score;
+
+                // Nguồn của câu (bộ câu hỏi) để hiện "câu gốc đã có bản mới" / "Cập nhật theo bản gốc"
+                var source = question.SourceQuestion;
+                dto.SourceQuestionId = question.SourceQuestionId;
+                dto.SourceVersion = question.SourceVersion;
+                var sourceAlive = source != null && !source.IsDeleted && source.QuestionSet != null && !source.QuestionSet.IsDeleted;
+                dto.LatestSourceVersion = sourceAlive ? source!.Version : null;
+                dto.SourceQuestionSetId = source?.QuestionSetId;
+                dto.SourceQuestionSetName = sourceAlive ? source!.QuestionSet!.Name : null;
                 return dto;
             })
             .ToList();

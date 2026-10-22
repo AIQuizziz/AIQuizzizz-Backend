@@ -397,12 +397,12 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.ToTable("Folders");
                 });
 
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.FolderTestTemplate", b =>
+            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.FolderQuestionSet", b =>
                 {
                     b.Property<Guid>("FolderId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("TestTemplateId")
+                    b.Property<Guid>("QuestionSetId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("Created")
@@ -417,13 +417,13 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Property<Guid?>("LastModifiedBy")
                         .HasColumnType("uuid");
 
-                    b.HasKey("FolderId", "TestTemplateId");
+                    b.HasKey("FolderId", "QuestionSetId");
 
                     b.HasIndex("CreatedBy");
 
-                    b.HasIndex("TestTemplateId");
+                    b.HasIndex("QuestionSetId");
 
-                    b.ToTable("FolderTestTemplates");
+                    b.ToTable("FolderQuestionSets");
                 });
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.FolderUser", b =>
@@ -654,6 +654,10 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ContentHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTimeOffset>("Created")
                         .HasColumnType("timestamp with time zone");
 
@@ -699,6 +703,12 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                         .HasColumnType("numeric(5,2)")
                         .HasDefaultValue(0f);
 
+                    b.Property<Guid?>("SourceQuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("SourceVersion")
+                        .HasColumnType("integer");
+
                     b.Property<string>("TextFormat")
                         .IsRequired()
                         .HasColumnType("text");
@@ -707,6 +717,11 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedBy");
@@ -714,6 +729,8 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.HasIndex("MediaId");
 
                     b.HasIndex("QuestionSetId");
+
+                    b.HasIndex("SourceQuestionId");
 
                     b.ToTable("Questions");
                 });
@@ -1034,113 +1051,6 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("TestQuestions");
-                });
-
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplate", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModifiedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedBy");
-
-                    b.ToTable("TestTemplates");
-                });
-
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplateQuestion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModifiedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("QuestionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("TestTemplateId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedBy");
-
-                    b.HasIndex("QuestionId");
-
-                    b.HasIndex("TestTemplateId");
-
-                    b.ToTable("TestTemplateQuestions");
-                });
-
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplateUser", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("TestTemplateId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsViewed")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModifiedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ShareMode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("UserId", "TestTemplateId");
-
-                    b.HasIndex("CreatedBy");
-
-                    b.HasIndex("TestTemplateId");
-
-                    b.ToTable("TestTemplateUsers");
                 });
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestVersion", b =>
@@ -1989,7 +1899,7 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Navigation("CreatedByUser");
                 });
 
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.FolderTestTemplate", b =>
+            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.FolderQuestionSet", b =>
                 {
                     b.HasOne("CleanArchitectureBase.Domain.Entities.User", "CreatedByUser")
                         .WithMany()
@@ -1997,14 +1907,14 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CleanArchitectureBase.Domain.Entities.Folder", "Folder")
-                        .WithMany("FolderTestTemplates")
+                        .WithMany("FolderQuestionSets")
                         .HasForeignKey("FolderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CleanArchitectureBase.Domain.Entities.TestTemplate", "TestTemplate")
-                        .WithMany("FolderTestTemplates")
-                        .HasForeignKey("TestTemplateId")
+                    b.HasOne("CleanArchitectureBase.Domain.Entities.QuestionSet", "QuestionSet")
+                        .WithMany("FolderQuestionSets")
+                        .HasForeignKey("QuestionSetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2012,7 +1922,7 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
 
                     b.Navigation("Folder");
 
-                    b.Navigation("TestTemplate");
+                    b.Navigation("QuestionSet");
                 });
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.FolderUser", b =>
@@ -2104,11 +2014,18 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                         .HasForeignKey("QuestionSetId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("CleanArchitectureBase.Domain.Entities.Question", "SourceQuestion")
+                        .WithMany()
+                        .HasForeignKey("SourceQuestionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Media");
 
                     b.Navigation("QuestionSet");
+
+                    b.Navigation("SourceQuestion");
                 });
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.QuestionSet", b =>
@@ -2249,68 +2166,6 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Navigation("Question");
 
                     b.Navigation("Test");
-                });
-
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplate", b =>
-                {
-                    b.HasOne("CleanArchitectureBase.Domain.Entities.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplateQuestion", b =>
-                {
-                    b.HasOne("CleanArchitectureBase.Domain.Entities.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CleanArchitectureBase.Domain.Entities.Question", "Question")
-                        .WithMany("TestTemplateQuestions")
-                        .HasForeignKey("QuestionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CleanArchitectureBase.Domain.Entities.TestTemplate", "TestTemplate")
-                        .WithMany("TestTemplateQuestions")
-                        .HasForeignKey("TestTemplateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Question");
-
-                    b.Navigation("TestTemplate");
-                });
-
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplateUser", b =>
-                {
-                    b.HasOne("CleanArchitectureBase.Domain.Entities.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CleanArchitectureBase.Domain.Entities.TestTemplate", "TestTemplate")
-                        .WithMany("TestTemplateUsers")
-                        .HasForeignKey("TestTemplateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CleanArchitectureBase.Domain.Entities.User", "User")
-                        .WithMany("TestTemplateUsers")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("TestTemplate");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestVersion", b =>
@@ -2577,7 +2432,7 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.Folder", b =>
                 {
-                    b.Navigation("FolderTestTemplates");
+                    b.Navigation("FolderQuestionSets");
 
                     b.Navigation("FolderUsers");
                 });
@@ -2600,8 +2455,6 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
 
                     b.Navigation("TestQuestions");
 
-                    b.Navigation("TestTemplateQuestions");
-
                     b.Navigation("TestVersionQuestions");
 
                     b.Navigation("UserQuestionSetHistories");
@@ -2612,6 +2465,8 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Navigation("AccessHistories");
 
                     b.Navigation("ClassQuestionSets");
+
+                    b.Navigation("FolderQuestionSets");
 
                     b.Navigation("QuestionSetRatings");
 
@@ -2636,15 +2491,6 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Navigation("TestQuestions");
 
                     b.Navigation("TestVersions");
-                });
-
-            modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestTemplate", b =>
-                {
-                    b.Navigation("FolderTestTemplates");
-
-                    b.Navigation("TestTemplateQuestions");
-
-                    b.Navigation("TestTemplateUsers");
                 });
 
             modelBuilder.Entity("CleanArchitectureBase.Domain.Entities.TestVersion", b =>
@@ -2676,8 +2522,6 @@ namespace CleanArchitectureBase.Infrastructure.Data.Migrations
                     b.Navigation("QuestionSetUsers");
 
                     b.Navigation("TestGrades");
-
-                    b.Navigation("TestTemplateUsers");
 
                     b.Navigation("UserQuestionSetHistories");
 

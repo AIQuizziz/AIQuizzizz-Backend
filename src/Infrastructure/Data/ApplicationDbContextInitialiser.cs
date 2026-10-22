@@ -56,13 +56,45 @@ public class ApplicationDbContextInitialiser
             // {
             await _context.Database.MigrateAsync();
             // }
-            await Task.CompletedTask;
+            await BackfillQuestionContentHashAsync();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while initialising the database.");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Câu hỏi có từ trước khi có cơ chế version (ContentHash = null): tính hash một lần, không tăng Version.
+    /// </summary>
+    public async Task BackfillQuestionContentHashAsync()
+    {
+        const int batchSize = 500;
+        var total = 0;
+        while (true)
+        {
+            var batch = await _context.Questions
+                .AsNoTracking()
+                .Where(q => q.ContentHash == null)
+                .OrderBy(q => q.Id)
+                .Take(batchSize)
+                .ToListAsync();
+            if (batch.Count == 0) break;
+
+            // Chỉ ghi cột ContentHash (không qua SaveChanges nên không đổi LastModified / Version)
+            foreach (var question in batch)
+            {
+                var hash = QuestionContent.Hash(question);
+                await _context.Questions
+                    .Where(q => q.Id == question.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(q => q.ContentHash, hash));
+            }
+            total += batch.Count;
+        }
+
+        if (total > 0)
+            _logger.LogInformation("Backfilled ContentHash for {Count} questions", total);
     }
 
     public async Task SeedAsync()

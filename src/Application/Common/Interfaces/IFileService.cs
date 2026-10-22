@@ -1,5 +1,5 @@
 ﻿using CleanArchitectureBase.Application.Common.Models;
-using CleanArchitectureBase.Application.TestTemplates;
+using CleanArchitectureBase.Application.Tests;
 
 namespace CleanArchitectureBase.Application.Common.Interfaces;
 

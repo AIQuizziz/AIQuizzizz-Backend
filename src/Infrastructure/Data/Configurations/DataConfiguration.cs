@@ -136,6 +136,21 @@ public class QuestionConfiguration : IEntityTypeConfiguration<Question>
             .HasConversion<string>()
             .HasMaxLength(20);
 
+        builder.Property(q => q.Version)
+            .HasDefaultValue(1);
+
+        // SHA-256 hex (QuestionContent.Hash)
+        builder.Property(q => q.ContentHash)
+            .HasMaxLength(64);
+
+        // Bản sao trong bài test -> câu gốc trong bộ câu hỏi (câu gốc chỉ xoá mềm nên không cascade)
+        builder.HasOne(q => q.SourceQuestion)
+            .WithMany()
+            .HasForeignKey(q => q.SourceQuestionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(q => q.SourceQuestionId);
+
         //Một question thuộc về một QuestionSet
         builder.HasOne(q => q.QuestionSet)
             .WithMany(qs => qs.Questions)
@@ -344,34 +359,6 @@ public class UserQuestionSetHistoryConfiguration : IEntityTypeConfiguration<User
     }
 }
 
-public class TestTemplateConfiguration : IEntityTypeConfiguration<TestTemplate>
-{
-    public void Configure(EntityTypeBuilder<TestTemplate> builder)
-    {
-        builder.Property(tt => tt.Name)
-            .IsRequired()
-            .HasMaxLength(200);
-    }
-}
-
-public class TestTemplateQuestionConfiguration : IEntityTypeConfiguration<TestTemplateQuestion>
-{
-    public void Configure(EntityTypeBuilder<TestTemplateQuestion> builder)
-    {
-        builder.HasKey(ttq => ttq.Id);
-
-        builder.HasOne(ttq => ttq.TestTemplate)
-            .WithMany(tt => tt.TestTemplateQuestions)
-            .HasForeignKey(ttq => ttq.TestTemplateId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne(ttq => ttq.Question)
-            .WithMany(q => q.TestTemplateQuestions)
-            .HasForeignKey(ttq => ttq.QuestionId)
-            .OnDelete(DeleteBehavior.Restrict);
-    }
-}
-
 public class FolderConfiguration : IEntityTypeConfiguration<Folder>
 {
     public void Configure(EntityTypeBuilder<Folder> builder)
@@ -382,56 +369,27 @@ public class FolderConfiguration : IEntityTypeConfiguration<Folder>
     }
 }
 
-public class FolderTestTemplateConfiguration : IEntityTypeConfiguration<FolderTestTemplate>
+public class FolderQuestionSetConfiguration : IEntityTypeConfiguration<FolderQuestionSet>
 {
-    public void Configure(EntityTypeBuilder<FolderTestTemplate> builder)
+    public void Configure(EntityTypeBuilder<FolderQuestionSet> builder)
     {
-        builder.HasKey(ftt => new
+        builder.HasKey(fqs => new
         {
-            ftt.FolderId,
-            ftt.TestTemplateId
+            fqs.FolderId,
+            fqs.QuestionSetId
         });
 
-        builder.HasOne(ftt => ftt.Folder)
-            .WithMany(f => f.FolderTestTemplates)
-            .HasForeignKey(ftt => ftt.FolderId)
+        builder.HasOne(fqs => fqs.Folder)
+            .WithMany(f => f.FolderQuestionSets)
+            .HasForeignKey(fqs => fqs.FolderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(ftt => ftt.TestTemplate)
-            .WithMany(tt => tt.FolderTestTemplates)
-            .HasForeignKey(ftt => ftt.TestTemplateId)
+        builder.HasOne(fqs => fqs.QuestionSet)
+            .WithMany(qs => qs.FolderQuestionSets)
+            .HasForeignKey(fqs => fqs.QuestionSetId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
-
-public class TestTemplateUserConfiguration : IEntityTypeConfiguration<TestTemplateUser>
-{
-    public void Configure(EntityTypeBuilder<TestTemplateUser> builder)
-    {
-        builder.HasKey(ttu => new
-        {
-            ttu.UserId,
-            ttu.TestTemplateId
-        });
-
-        builder.Property(ttu => ttu.ShareMode)
-            .IsRequired()
-            .HasConversion(
-                v => v.ToString(),
-                v => (TestTemplateUserShareMode)Enum.Parse(typeof(TestTemplateUserShareMode), v));
-
-        builder.HasOne(ttu => ttu.User)
-            .WithMany(u => u.TestTemplateUsers)
-            .HasForeignKey(ttu => ttu.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(ttu => ttu.TestTemplate)
-            .WithMany(tt => tt.TestTemplateUsers)
-            .HasForeignKey(ttu => ttu.TestTemplateId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-}
-
 public class FolderUserConfiguration : IEntityTypeConfiguration<FolderUser>
 {
     public void Configure(EntityTypeBuilder<FolderUser> builder)

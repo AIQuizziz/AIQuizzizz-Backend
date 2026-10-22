@@ -22,7 +22,6 @@ public class User
     public List<QuestionSetUser> QuestionSetUsers { get; set; } = new();
     public List<Comment> Comments { get; set; } = new();
     public List<UserQuestionSetHistory> UserQuestionSetHistories { get; set; } = new();
-    public List<TestTemplateUser> TestTemplateUsers { get; set; } = new();
     public List<FolderUser> FolderUsers { get; set; } = new();
     public List<ClassUser> ClassUsers { get; set; } = new();
     public List<ClassInvitationUser> ClassInvitationUsers { get; set; } = new();

@@ -22,6 +22,18 @@ public class QuestionResponseDto
     public bool? IsCorrect { get; set; }
     public QuestionDataDto QuestionData { get; set; } = null!;
     public QuestionMediaDto? Media { get; set; }
+    /// <summary>Phiên bản nội dung (câu trong bộ câu hỏi)</summary>
+    public int Version { get; set; }
+
+    // Chỉ có ở câu hỏi trong bài test (chi tiết / sửa bài test)
+    /// <summary>Câu gốc trong bộ câu hỏi mà câu này được chép từ</summary>
+    public Guid? SourceQuestionId { get; set; }
+    /// <summary>Phiên bản câu gốc lúc chép</summary>
+    public int? SourceVersion { get; set; }
+    /// <summary>Phiên bản hiện tại của câu gốc (null nếu câu gốc đã bị xoá / không còn quyền) — lớn hơn SourceVersion là câu gốc đã có bản mới</summary>
+    public int? LatestSourceVersion { get; set; }
+    public Guid? SourceQuestionSetId { get; set; }
+    public string? SourceQuestionSetName { get; set; }
 
     /// <summary>
     /// Convert entity to response
@@ -60,7 +72,8 @@ public class QuestionResponseDto
                 Score = question.Score,
                 IsCorrect = isCorrect,
                 QuestionData = questionData,
-                Media = QuestionMediaDto.From(question.MediaId, question.MediaType)
+                Media = QuestionMediaDto.From(question.MediaId, question.MediaType),
+                Version = question.Version
             };
         }
     }
