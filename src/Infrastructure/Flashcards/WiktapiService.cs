@@ -227,14 +227,26 @@ public partial class WiktapiService : IDictionaryLookupService, ITranslationServ
             .ToList();
     }
 
-    /// <summary>Câu ví dụ ngắn: type "example", hoặc không ghi type và không có nguồn trích (ref = trích dẫn sách / báo, thường rất dài)</summary>
+    /// <summary>Câu không ghi type dài hơn mức này coi như trích dẫn</summary>
+    private const int MaxUntypedExampleLength = 200;
+
+    /// <summary>
+    /// Câu ví dụ ngắn: type "example"; hoặc không ghi type, không có nguồn trích (ref = trích dẫn sách / báo, thường rất dài),
+    /// không mở đầu bằng năm và không quá dài (có mục dồn cả nguồn trích vào chữ: "1821-1822, Vicesimus Knox, Remarks on…").
+    /// </summary>
     private static bool IsShortExample(JsonElement example) =>
         Str(example, "type") switch
         {
             "example" => true,
-            null => !example.TryGetProperty("ref", out _),
+            null => !example.TryGetProperty("ref", out _)
+                    && Str(example, "text") is { } text
+                    && text.Length <= MaxUntypedExampleLength
+                    && !CitationStart().IsMatch(text),
             _ => false
         };
+
+    [GeneratedRegex(@"^\s*\d{3,4}\b")]
+    private static partial Regex CitationStart();
 
     /// <summary>IPA đầu tiên + file âm thanh đầu tiên (Wikimedia Commons, https)</summary>
     public static (string? Phonetic, string? AudioUrl) ParseSounds(JsonDocument doc)

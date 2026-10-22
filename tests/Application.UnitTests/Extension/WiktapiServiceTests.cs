@@ -263,6 +263,7 @@ public class WiktapiServiceTests
               {"pos":"verb","lang_code":"en","senses":[{"glosses":["To translate into English."],"tags":["archaic","rare"]}]},
               {"pos":"noun","lang_code":"en","senses":[{"glosses":["Yarns coiled on a spun-yarn winch."],"tags":["uncountable"],
                 "examples":[{"text":"1821, Some Author, A Very Long Book Title, page 3: a quotation","ref":"1821, Some Author"},
+                            {"text":"1821-1822, Vicesimus Knox, Remarks on the tendency of certain Clauses in a Bill: a quotation"},
                             {"text":"A coil of ran."}]}]},
               {"pos":"verb","lang_code":"en","senses":[{"glosses":["simple past of run"],"tags":["form-of","past"]}]}]}
             """;
