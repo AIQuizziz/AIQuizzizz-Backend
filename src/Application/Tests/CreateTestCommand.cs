@@ -73,6 +73,10 @@ public class CreateTestCommandValidator : AbstractValidator<CreateTestCommand>
             .Must(type => new[] {"Partial", "AllOrNothing"}.Contains(type))
             .WithMessage($"Loại câu hỏi phải là Partial, AllOrNothing");
         
+        RuleFor(x => x.Questions)
+            .Must(TestQuestionRules.HasDistinctQuestionIds)
+            .WithMessage("Một câu hỏi chỉ được chọn một lần trong bài kiểm tra");
+
         RuleForEach(x => x.Questions)
             .SetValidator((command, question) => new CreateUpdateQuestionDto.QuestionCreateDtoValidator());
     }
@@ -167,6 +171,15 @@ public class CreateTestCommandHandler : IRequestHandler<CreateTestCommand, Guid>
             return question.Id;
         }).ToList();
         
+        // Bản gốc của bài test: thứ tự client gửi lên + điểm của từng câu trong bài này
+        var testQuestions = questionIds.Select((questionId, index) => new TestQuestion
+        {
+            TestId = test.Id,
+            QuestionId = questionId,
+            Score = rq.Questions[index].Score,
+            Order = index
+        }).ToList();
+
         var testVersions = Enumerable.Range(0, rq.NumberOfShuffles).Select(versionNo => new TestVersion
         {
             Id = Guid.NewGuid(),
@@ -174,29 +187,20 @@ public class CreateTestCommandHandler : IRequestHandler<CreateTestCommand, Guid>
             No = versionNo
         }).ToList();
 
-        var testVersionQuestions = testVersions.SelectMany(t =>
-        {
-            // Version gốc (No = 0) giữ đúng thứ tự client gửi lên (trang sửa test đọc version này); các version còn lại được xáo trộn
-            var shuffledIndex = t.No == 0
-                ? Enumerable.Range(0, questionIds.Count()).ToList()
-                : Enumerable.Range(0, questionIds.Count()).OrderBy(_ => _random.Next()).ToList();
+        var testVersionQuestions = TestVersionBuilder.Build(questionIds, testVersions, _random);
 
-            return shuffledIndex.Select((index, order) => new TestVersionQuestion
-            {
-                Id = Guid.NewGuid(), QuestionId = questionIds[index], TestVersionId = t.Id, Order = order
-            });
-        }).ToList();
-        
         test.QuestionCount = questionIds.Count;
-        
+
         _context.Tests.Add(test);
-        
-        _context.TestVersions.AddRange(testVersions);
-        
+
         _context.Questions.AddRange(questionsToAdd);
-        
+
+        _context.TestQuestions.AddRange(testQuestions);
+
+        _context.TestVersions.AddRange(testVersions);
+
         _context.TestVersionQuestions.AddRange(testVersionQuestions);
-        
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return test.Id;

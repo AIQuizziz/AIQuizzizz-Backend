@@ -166,6 +166,7 @@ public class Question : BaseAuditableEntity
     public List<Comment> Comments { get; set; } = new();
     public List<UserQuestionSetHistory> UserQuestionSetHistories { get; set; } = new();
     public List<TestTemplateQuestion> TestTemplateQuestions { get; set; } = new();
+    public List<TestQuestion> TestQuestions { get; set; } = new();
     public List<TestVersionQuestion> TestVersionQuestions { get; set; } = new();
     public List<AttemptQuestion> AttemptQuestions { get; set; } = new();
 }
@@ -365,9 +366,29 @@ public class Test : BaseAuditableEntity
     public bool IsDeleted { get; set; }
 
     public List<TestGrade> TestGrades { get; set; } = new();
+    /// <summary>Bản gốc của bài test: danh sách câu, thứ tự gốc, điểm của từng câu trong bài này</summary>
+    public List<TestQuestion> TestQuestions { get; set; } = new();
+    /// <summary>Các bản trộn phát cho học sinh, sinh ra từ TestQuestions</summary>
     public List<TestVersion> TestVersions { get; set; } = new();
     public List<Attempt> Attempts { get; set; } = new();
     public Class? Class { get; set; }
+}
+
+/// <summary>
+/// Câu hỏi trong bản gốc của bài test. Điểm tối đa của câu trong bài này lưu ở đây (không dùng Question.Score),
+/// nên cùng một câu hỏi có thể có điểm khác nhau ở các bài test khác nhau.
+/// </summary>
+public class TestQuestion : BaseEntity
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public required Guid TestId { get; set; }
+    public required Guid QuestionId { get; set; }
+    public float Score { get; set; }
+    /// <summary>Vị trí câu hỏi trong bản gốc (0-based)</summary>
+    public int Order { get; set; }
+
+    public Test? Test { get; set; }
+    public Question? Question { get; set; }
 }
 
 public class TestVersion : BaseEntity

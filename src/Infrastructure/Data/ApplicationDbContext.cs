@@ -42,6 +42,7 @@ public class ApplicationDbContext : IdentityDbContext<UserAccount,
     public DbSet<FolderUser> FolderUsers => Set<FolderUser>();
     public DbSet<Test> Tests => Set<Test>();
     public DbSet<TestVersion> TestVersions => Set<TestVersion>();
+    public DbSet<TestQuestion> TestQuestions => Set<TestQuestion>();
     public DbSet<TestVersionQuestion> TestVersionQuestions => Set<TestVersionQuestion>();
     public DbSet<Attempt> Attempts => Set<Attempt>();
     public DbSet<AttemptQuestion> AttemptQuestions => Set<AttemptQuestion>();

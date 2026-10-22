@@ -91,6 +91,16 @@ public class SubmitTestAttemptCommandHandler : IRequestHandler<SubmitTestAttempt
             .Where(t => t.TestVersion!.Id == attempt.TestVersionId)
             .Select(x => QuestionResponseDto.Mapper.FromEntity(x.Question!,true, true, true))
             .ToListAsync(cancellationToken);
+
+        // Điểm tối đa của câu trong bài này nằm ở bản gốc (TestQuestion), không dùng Question.Score
+        var scoreByQuestion = await _context.TestQuestions
+            .Where(x => x.TestId == attempt.TestId)
+            .ToDictionaryAsync(x => x.QuestionId, x => x.Score, cancellationToken);
+        foreach (var question in questionsInTest)
+        {
+            if (scoreByQuestion.TryGetValue(question.Id, out var score))
+                question.Score = score;
+        }
         
         // QuestionId trùng -> lấy câu trả lời cuối; bỏ câu không có dữ liệu (tránh ArgumentException / NullReference)
         var userAnswers = rq.UserAnswers

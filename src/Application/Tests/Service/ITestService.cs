@@ -84,8 +84,8 @@ public class TestService : ITestService
         
         return validQuestionInTestTemplate
             .Select(x => new { x.Question, MatchingQuestion = question.First(q => q.QuestionId!.Equals(x.QuestionId)) })
-            .Where(x => CreateUpdateQuestionDto.Compare.CompareQuestion(x.Question!, x.MatchingQuestion)
-                        && x.Question!.Score == x.MatchingQuestion.Score)
+            // Chỉ so nội dung: điểm của câu trong bài test lưu ở TestQuestion, đổi điểm không cần tạo câu mới
+            .Where(x => CreateUpdateQuestionDto.Compare.CompareQuestion(x.Question!, x.MatchingQuestion))
             .Select(x => x.Question!.Id)
             .ToList();
     }

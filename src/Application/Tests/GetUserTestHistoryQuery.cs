@@ -79,12 +79,9 @@ public class GetUserTestHistoryQueryHandler : IRequestHandler<GetUserTestHistory
                 userId = rq.UserId.Value;
         }
         
-        var totalScore = _context.TestVersionQuestions
-            .Include(x => x.Question)
-            .Include(x => x.TestVersion)
-            .ThenInclude(x => x!.Test)
-            .Where(x => x.TestVersion!.Test!.Id == rq.TestId && x.TestVersion.No == 0)
-            .Sum(x => x.Question!.Score);
+        var totalScore = _context.TestQuestions
+            .Where(x => x.TestId == rq.TestId)
+            .Sum(x => x.Score);
         // tránh chia cho 0 trong SQL khi tổng điểm = 0
         var safeTotalScore = totalScore > 0 ? totalScore : 1;
             
