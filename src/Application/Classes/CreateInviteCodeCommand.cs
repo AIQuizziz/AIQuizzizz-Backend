@@ -19,7 +19,8 @@ public class CreateInviteCodeCommand : IRequest<ClassCodeDto>
     /// Id of the class want to create invite code
     /// </summary>
     public Guid? ClassId { get; set; }
-    public required double ExpiredTime { get; set; }
+    /// <summary>Số ngày mã còn hiệu lực; null = vô thời hạn</summary>
+    public double? ExpiredTime { get; set; }
 }
 
 public class CreateInviteCodeCommandValidator : AbstractValidator<CreateInviteCodeCommand>
@@ -29,8 +30,9 @@ public class CreateInviteCodeCommandValidator : AbstractValidator<CreateInviteCo
         RuleFor(x => x.ClassId)
             .NotEmpty().WithMessage("ClassId không được để trống");
         RuleFor(x => x.ExpiredTime)
-            .NotEmpty().WithMessage("Thời gian hết hạn không được trống")
-            .GreaterThan(0).WithMessage("Thời gian hết hạn > 0");
+            .GreaterThan(0).WithMessage("Thời gian hết hạn > 0")
+            .LessThanOrEqualTo(3650).WithMessage("Thời gian hết hạn tối đa 3650 ngày, chọn vô thời hạn nếu cần lâu hơn")
+            .When(x => x.ExpiredTime != null);
     }
 }
 
@@ -71,7 +73,7 @@ public class CreateInviteCodeCommandHandler : IRequestHandler<CreateInviteCodeCo
             Id = Guid.NewGuid(),
             ClassId = classById.Id,
             TimeStart = DateTime.UtcNow,
-            TimeEnd = DateTime.UtcNow.AddDays(rq.ExpiredTime),
+            TimeEnd = rq.ExpiredTime is { } days ? DateTime.UtcNow.AddDays(days) : ClassInvitation.NoExpiry,
             Code = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12],
             IsDeleted = false
         };

@@ -112,6 +112,40 @@ public class CreateInviteCodeCommandTests : BaseTestFixture
     }
     
     [Test]
+    public async Task ShouldCreateNonExpiringInviteCode_WhenExpiredTimeIsNull()
+    {
+        var ownerId = await RunAsDefaultUserAsync();
+        var classEntity = new Class { Name = "Test Class", CreatedBy = ownerId };
+        await AddAsync(classEntity);
+        await AddAsync(new ClassUser { UserId = ownerId, ClassId = classEntity.Id, ShareMode = ClassShareMode.Owner });
+
+        var result = await SendAsync(new CreateInviteCodeCommand { ClassId = classEntity.Id, ExpiredTime = null });
+
+        var classInvitation = (await QueryListAsync<ClassInvitation>(x => x.Where(ci => ci.ClassId == classEntity.Id))).Single();
+        classInvitation.Code.Should().Be(result.Code);
+        classInvitation.TimeEnd.Should().Be(ClassInvitation.NoExpiry);
+        (await SendAsync(new GetInviteStudentCodeQuery { ClassId = classEntity.Id })).Should().Be(result.Code);
+
+        var studentId = await RunAsUserAsync("student-noexpiry@local", "Student1234!", []);
+        await SendAsync(new JoinClassByCodeCommand { Code = result.Code });
+        (await QueryListAsync<ClassUser>(x => x.Where(cu => cu.ClassId == classEntity.Id && cu.UserId == studentId))).Should().ContainSingle();
+    }
+
+    [Test]
+    public async Task ShouldRejectExpiredTimeOverTenYears()
+    {
+        var userId = await RunAsDefaultUserAsync();
+        var classEntity = new Class { Name = "Test Class", CreatedBy = userId };
+        await AddAsync(classEntity);
+        await AddAsync(new ClassUser { UserId = userId, ClassId = classEntity.Id, ShareMode = ClassShareMode.Owner });
+
+        var ex = await FluentActions.Invoking(() => SendAsync(new CreateInviteCodeCommand { ClassId = classEntity.Id, ExpiredTime = 3651 }))
+            .Should().ThrowAsync<ErrorCodeException>();
+
+        ex.Which.Errors.Should().ContainKey(ErrorCodes.COMMON_INVALID_MODEL);
+    }
+
+    [Test]
     public async Task ShouldCreateInviteCodeSuccessfullyWithTeacherRole()
     {
         var userId = await RunAsDefaultUserAsync();
