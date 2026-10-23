@@ -41,6 +41,9 @@ public class ClassQuestionSet : BaseAuditableEntity
 
 public class ClassInvitation : BaseAuditableEntity
 {
+    /// <summary>TimeEnd của mã mời vô thời hạn (các truy vấn so TimeEnd >= now vẫn đúng, không cần cột riêng)</summary>
+    public static readonly DateTime NoExpiry = new(9999, 12, 31, 0, 0, 0, DateTimeKind.Utc);
+
     public Guid Id { get; set; } = Guid.NewGuid();
     public required Guid ClassId { get; set; }
     public required string Code { get; set; }
