@@ -4,6 +4,14 @@
 
 ## [Unreleased] — 2026-10-19
 
+### Added — Xuất / nhập câu hỏi dạng JSON
+- **Định dạng công khai** `aiquizzizz/questions` v1 (`QuestionJsonFormat`): `questionSet` {`name`, `description`, `tags`} + `questions` [{`type`, `content`, `textFormat`, `points`, `explanation`, `options` [{`text`, `correct`}] | `pairs` [{`left`, `right`}] | `items` (theo thứ tự đúng) | `answer` | `flashcard`}]. Không có id / thứ tự xáo trộn như `DataJson` nội bộ; giữ nguyên tiếng Việt khi ghi (không `\uXXXX`).
+- **`GET /api/QuestionSet/{id}/ExportJson`**: cần quyền sửa bộ; người không phải chủ bộ còn cần gói cho phép sao chép bộ câu hỏi (`PLAN_REQUIRE_PLAN`), vì xuất rồi nhập lại tương đương sao chép. Câu đã xoá bị bỏ qua; ảnh / video không được xuất.
+- **`POST /api/QuestionSet/ImportJson`** `{ json }`: chỉ đọc + kiểm tra (không lưu), trả `validQuestions` / `invalidQuestions` (mỗi câu có `index`, `errors`, `warnings`) + `questionSet` để client điền sẵn khi tạo bộ — cùng luồng với nhập Excel. Kiểm tra bằng đúng validator lúc lưu.
+- **Đọc dễ dãi để dán thẳng kết quả AI** (`QuestionJsonParser`): bỏ ```` ```json ```` và lời dẫn trước / sau, cho phép dấu phẩy thừa và comment; gốc là mảng hoặc object (`questions` / `items` / `quiz` / `data`); tên trường không phân biệt hoa thường / gạch dưới và có bí danh (`question`, `text`, `choices`, `isCorrect`, `score`...); `type` viết kiểu `mcq`, `short_answer`...; thiếu `type` thì tự đoán; đáp án đúng có thể đánh dấu `*` đầu lựa chọn hoặc trường `answer` riêng (chữ cái, số thứ tự, nội dung, mảng); cặp ghép dạng `"a = b"` / `"a -> b"`; mục sắp xếp có `order`. ShortText nhiều đáp án -> giữ đáp án đầu + cảnh báo.
+- Lỗi: `QUESTION_JSON_EMPTY`, `QUESTION_JSON_INVALID` (kèm dòng / cột), `QUESTION_JSON_TOO_LARGE` (> 500 câu); nội dung tối đa 2 triệu ký tự.
+- Test: unit `QuestionJsonParserTests` (18 ca), functional `QuestionSets/Queries/QuestionJsonTests` (9 ca: chủ bộ, thứ tự + thẻ, xuất rồi nhập lại, không có quyền, người sửa có / không có gói, không tồn tại, tách câu hợp lệ / lỗi, JSON hỏng, chưa đăng nhập).
+
 ### Changed — Kiểm duyệt ảnh bắt cả ảnh 18+ dạng tranh vẽ / anime
 - media-ai 1.1.0 chạy thêm model phân loại cả ảnh (Falconsai/nsfw_image_detection, ngưỡng `NSFW_THRESHOLD` 0.85) cạnh NudeNet: một ảnh đại diện hentai được NudeNet chấm 0.515 (dưới ngưỡng 0.6) nên đã lọt; model mới chấm 0.99. `ModerationResult.Nsfw` (`label`, `score`) được lưu trong `ModerationResultJson` / `UserViolation.DetailJson`; lý do `nsfw` hiển thị là "khiêu dâm" trong vi phạm, email cảnh báo, lý do khoá tự động (vi / en).
 - Functional test: ảnh vẽ 18+ bị từ chối, vi phạm ghi "(khiêu dâm)" kèm điểm.

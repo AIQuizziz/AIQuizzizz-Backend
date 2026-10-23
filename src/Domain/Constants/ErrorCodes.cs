@@ -155,6 +155,11 @@ public static class ErrorCodes
     public const string MEDIA_NOT_FOUND = nameof(MEDIA_NOT_FOUND);
     public const string MEDIA_VIOLATED = nameof(MEDIA_VIOLATED);
 
+    //Nhập / xuất câu hỏi dạng JSON
+    public const string QUESTION_JSON_EMPTY = nameof(QUESTION_JSON_EMPTY);
+    public const string QUESTION_JSON_INVALID = nameof(QUESTION_JSON_INVALID);
+    public const string QUESTION_JSON_TOO_LARGE = nameof(QUESTION_JSON_TOO_LARGE);
+
     //Avatar
     public const string AVATAR_VIOLATED = nameof(AVATAR_VIOLATED);
     public const string AVATAR_MODERATION_FAILED = nameof(AVATAR_MODERATION_FAILED);

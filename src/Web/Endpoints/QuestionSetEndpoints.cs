@@ -6,6 +6,7 @@ using CleanArchitectureBase.Application.QuestionSets;
 using CleanArchitectureBase.Application.QuestionSets.Commands;
 using CleanArchitectureBase.Application.QuestionSets.Dtos;
 using CleanArchitectureBase.Application.QuestionSets.Queries;
+using CleanArchitectureBase.Application.QuestionSets.QuestionJson;
 using CleanArchitectureBase.Domain.Constants;
 using CleanArchitectureBase.Web.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -43,6 +44,8 @@ public class QuestionSetEndpoints : EndpointGroupBase
         group.MapGet(GetQuestionsForEdit, "{questionSetId}/QuestionsForEdit");
         group.MapGet(GetQuestionsForCopy, "{questionSetId}/QuestionsForCopy");
         group.MapPatch(UpdateQuestionSetSharing, "{questionSetId}/Sharing");
+        group.MapGet(ExportQuestionsJson, "{questionSetId}/ExportJson");
+        group.MapPost(ImportQuestionsJson, "ImportJson");
     }
 
     /// <summary>
@@ -427,6 +430,24 @@ public class QuestionSetEndpoints : EndpointGroupBase
         return result.ToOk();
     }
     
+    /// <summary>
+    /// Xuất câu hỏi của bộ ra JSON công khai (format "aiquizzizz/questions"). Cần quyền sửa bộ; không kèm ảnh / video.
+    /// </summary>
+    public async Task<Ok<ApiResponse<QuestionJsonFile>>> ExportQuestionsJson([FromRoute] Guid questionSetId, ISender sender)
+    {
+        var result = await sender.Send(new ExportQuestionSetJsonQuery { QuestionSetId = questionSetId });
+        return result.ToOk();
+    }
+
+    /// <summary>
+    /// Đọc + kiểm tra JSON câu hỏi (không lưu). Trả câu hợp lệ / không hợp lệ kèm lý do, như nhập Excel.
+    /// </summary>
+    public async Task<Ok<ApiResponse<ImportQuestionJsonResultDto>>> ImportQuestionsJson([FromBody] ImportQuestionJsonCommand command, ISender sender)
+    {
+        var result = await sender.Send(command);
+        return result.ToOk();
+    }
+
     public async Task<Ok<ApiResponse<string>>> GetLinkDownloadFileImport(
         ISender sender)
     {
